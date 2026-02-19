@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  .container.py-5
+    .row.justify-content-center
+      .col-md-6.text-center
+        .card.border-0.shadow-sm
+          .card-body.py-5
+            .mb-4
+              if codigo === 404
+                i.bi.bi-search.text-warning(style='font-size: 5rem;')
+              else
+                i.bi.bi-exclamation-triangle.text-danger(style='font-size: 5rem;')
+            
+            h1.display-4.mb-3.fw-bold(class=codigo === 404 ? 'text-warning' : 'text-danger')= codigo || 500
+            
+            h4.mb-4= titulo || 'Erro'
+            
+            p.text-muted.mb-4= mensagem || 'Ocorreu um erro inesperado.'
+            
+            .d-flex.gap-2.justify-content-center
+              a.btn.btn-primary(href='/')
+                i.bi.bi-house.me-2
+                | Página Inicial
+              
+              if utilizador
+                a.btn.btn-outline-secondary(href='/dashboard')
+                  i.bi.bi-speedometer2.me-2
+                  | Dashboard

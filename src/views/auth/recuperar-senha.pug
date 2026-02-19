@@ -1,0 +1,40 @@
+extends ../layout
+
+block content
+  .row.justify-content-center.py-3
+    .col-md-5.col-lg-4
+      .card.shadow-sm
+        .card-body.p-3
+          .text-center.mb-3
+            img.auth-logo(src="/images/logo.svg" alt="FINAXIS" style="max-width: 140px;")
+            h4.mt-2.mb-1 Recuperar Palavra-passe
+            p.text-muted.small.mb-0 Insira o seu email para receber instruções
+
+          if erro
+            .alert.alert-danger.py-2.d-flex.align-items-center.mb-2
+              i.bi.bi-exclamation-triangle.me-2
+              small #{erro}
+
+          if sucesso
+            .alert.alert-success.py-2.d-flex.align-items-center.mb-2
+              i.bi.bi-check-circle.me-2
+              small #{sucesso}
+
+          form(method="POST" action="/auth/recuperar-senha")
+            .mb-3
+              label.form-label.small.mb-1(for="email") Email
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-envelope
+                input.form-control(type="email" name="email" id="email" required placeholder="seu@email.com")
+
+            button.btn.btn-primary.w-100(type="submit")
+              i.bi.bi-send.me-2
+              | Enviar Instruções
+
+          hr.my-3
+
+          .text-center
+            a.small(href="/auth/login")
+              i.bi.bi-arrow-left.me-1
+              | Voltar ao login

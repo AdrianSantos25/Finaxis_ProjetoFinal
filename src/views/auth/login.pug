@@ -1,0 +1,44 @@
+extends ../layout
+
+block content
+  .row.justify-content-center.py-3
+    .col-md-5.col-lg-4
+      .card.shadow-sm
+        .card-body.p-3
+          .text-center.mb-3
+            img.auth-logo(src="/images/logo.svg" alt="FINAXIS" style="max-width: 140px;")
+            h4.mt-2.mb-1 Entrar
+            p.text-muted.small.mb-0 Aceda à sua conta
+
+          if erro
+            .alert.alert-danger.py-2.d-flex.align-items-center.mb-2
+              i.bi.bi-exclamation-triangle.me-2
+              small #{erro}
+
+          form(method="POST" action="/auth/login")
+            .mb-2
+              label.form-label.small.mb-1(for="email") Email
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-envelope
+                input.form-control(type="email" name="email" id="email" required placeholder="seu@email.com")
+
+            .mb-3
+              label.form-label.small.mb-1(for="password") Palavra-passe
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-lock
+                input.form-control(type="password" name="password" id="password" required placeholder="••••••••")
+              .text-end.mt-1
+                a.small.text-muted(href="/auth/recuperar-senha") Esqueceu a palavra-passe?
+
+            button.btn.btn-primary.w-100(type="submit")
+              i.bi.bi-box-arrow-in-right.me-2
+              | Entrar
+
+          hr.my-3
+
+          .text-center
+            p.mb-0.text-muted.small
+              | Ainda não tem conta?
+              a.ms-1(href="/auth/registar") Criar conta

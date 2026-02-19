@@ -1,0 +1,347 @@
+extends layout
+
+block content
+  //- HERO SECTION - Impactante e Moderno
+  .hero-section
+    .hero-background
+      .hero-shapes
+        .shape.shape-1
+        .shape.shape-2
+        .shape.shape-3
+    .container.position-relative
+      .row.align-items-center.min-vh-75
+        .col-lg-6.hero-content
+          .hero-badge.animate-fade-in
+            | Gestão Financeira Inteligente
+          h1.hero-title.animate-fade-in-up
+            | O seu dinheiro,
+            br
+            span.text-gradient sob controlo total.
+          p.hero-subtitle.animate-fade-in-up-delay
+            | Simplifique a gestão das suas finanças pessoais. 
+            | Controle receitas, despesas e acompanhe a evolução do seu património com gráficos intuitivos.
+          .hero-buttons.animate-fade-in-up-delay-2
+            a.btn.btn-primary.btn-hero.me-3(href="/auth/registar")
+              i.bi.bi-rocket-takeoff.me-2
+              | Começar Gratuitamente
+            a.btn.btn-outline-light.btn-hero(href="/auth/login")
+              i.bi.bi-play-circle.me-2
+              | Aceder à Conta
+          .hero-trust.animate-fade-in-up-delay-3
+            .trust-avatars
+              
+
+        .col-lg-6.hero-visual
+          .dashboard-preview.animate-scale-in
+            .preview-header
+              .preview-dots
+                span.dot.dot-red
+                span.dot.dot-yellow
+                span.dot.dot-green
+              span.preview-title Dashboard FINAXIS
+            .preview-content
+              .preview-stat.stat-1
+                .stat-icon.bg-success-light
+                  i.bi.bi-arrow-up-circle.text-success
+                .stat-info
+                  span.stat-label Receitas
+                  span.stat-value €4.250,00
+              .preview-stat.stat-2
+                .stat-icon.bg-danger-light
+                  i.bi.bi-arrow-down-circle.text-danger
+                .stat-info
+                  span.stat-label Despesas
+                  span.stat-value €2.180,00
+              .preview-stat.stat-3
+                .stat-icon.bg-primary-light
+                  i.bi.bi-wallet2.text-primary
+                .stat-info
+                  span.stat-label Saldo Atual
+                  span.stat-value.text-success €2.070,00
+              .preview-chart
+                .chart-bars
+                  .bar.bar-1(style="height: 40%")
+                  .bar.bar-2(style="height: 70%")
+                  .bar.bar-3(style="height: 55%")
+                  .bar.bar-4(style="height: 85%")
+                  .bar.bar-5(style="height: 60%")
+                  .bar.bar-6(style="height: 90%")
+
+
+  //- FUNCIONALIDADES - Cards Modernos
+  .features-section
+    .container
+      .section-header.text-center.animate-on-scroll
+        .section-badge
+          i.bi.bi-grid-1x2.me-2
+          | Funcionalidades
+        h2.section-title
+          | Tudo o que precisa para 
+          span.text-gradient gerir as suas finanças
+        p.section-subtitle
+          | Ferramentas poderosas e intuitivas para ter controlo total sobre o seu dinheiro
+
+      .row.g-4.mt-4
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-primary-gradient
+                i.bi.bi-speedometer2
+            h4.feature-title Dashboard Inteligente
+            p.feature-description
+              | Visualize o resumo completo das suas finanças num só lugar. 
+              | Gráficos interativos e indicadores em tempo real.
+            .feature-tag
+              i.bi.bi-lightning-charge.me-1
+              | Atualização Instantânea
+
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-success-gradient
+                i.bi.bi-arrow-left-right
+            h4.feature-title Gestão de Transações
+            p.feature-description
+              | Registe receitas e despesas em segundos. 
+              | Organize por categorias e acompanhe cada movimento.
+            .feature-tag
+              i.bi.bi-check-circle.me-1
+              | Fácil de Usar
+
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-info-gradient
+                i.bi.bi-graph-up-arrow
+            h4.feature-title Relatórios Detalhados
+            p.feature-description
+              | Análises mensais e anuais com gráficos profissionais. 
+              | Entenda para onde vai o seu dinheiro.
+            .feature-tag
+              i.bi.bi-bar-chart.me-1
+              | Insights Poderosos
+
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-warning-gradient
+                i.bi.bi-tags
+            h4.feature-title Categorias Personalizadas
+            p.feature-description
+              | Crie categorias únicas para organizar as suas transações 
+              | da forma que faz mais sentido para si.
+            .feature-tag
+              i.bi.bi-palette.me-1
+              | 100% Personalizável
+
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-purple-gradient
+                i.bi.bi-calendar-check
+            h4.feature-title Acompanhamento Mensal
+            p.feature-description
+              | Veja a evolução do seu saldo mês a mês. 
+              | Compare períodos e identifique tendências.
+            .feature-tag
+              i.bi.bi-clock-history.me-1
+              | Histórico Completo
+
+        .col-md-6.col-lg-4
+          .feature-card.animate-on-scroll
+            .feature-icon-wrapper
+              .feature-icon.bg-danger-gradient
+                i.bi.bi-shield-lock
+            h4.feature-title Segurança Total
+            p.feature-description
+              | Os seus dados estão protegidos com encriptação avançada 
+              | e autenticação segura.
+            .feature-tag
+              i.bi.bi-lock.me-1
+              | Dados Protegidos
+
+  //- COMO FUNCIONA - Passos Simples
+  .how-it-works-section
+    .container
+      .section-header.text-center.animate-on-scroll
+        .section-badge
+          i.bi.bi-signpost-2.me-2
+          | Como Funciona
+        h2.section-title
+          | Comece em 
+          span.text-gradient 3 passos simples
+        p.section-subtitle
+          | Configurar a sua conta e começar a controlar as suas finanças é rápido e fácil
+
+      .row.g-4.mt-5
+        .col-md-4
+          .step-card.animate-on-scroll
+            .step-number 01
+            .step-icon
+              i.bi.bi-person-plus-fill
+            h4.step-title Crie a sua Conta
+            p.step-description
+              | Registe-se gratuitamente em menos de 1 minuto. 
+              | Só precisa de um email e password.
+
+        .col-md-4
+          .step-card.animate-on-scroll
+            .step-number 02
+            .step-icon
+              i.bi.bi-plus-circle-fill
+            h4.step-title Adicione Transações
+            p.step-description
+              | Registe as suas receitas e despesas. 
+              | Categorize para uma organização perfeita.
+
+        .col-md-4
+          .step-card.animate-on-scroll
+            .step-number 03
+            .step-icon
+              i.bi.bi-graph-up
+            h4.step-title Acompanhe a Evolução
+            p.step-description
+              | Visualize relatórios, gráficos e tome 
+              | decisões financeiras mais inteligentes.
+
+
+  //- VANTAGENS
+  .advantages-section
+    .container
+      .row.align-items-center
+        .col-lg-6.animate-on-scroll
+          .section-badge
+            i.bi.bi-trophy.me-2
+            | Porquê a FINAXIS?
+          h2.section-title.mb-4
+            | Vantagens que fazem a 
+            span.text-gradient diferença
+          
+          .advantage-item
+            .advantage-icon
+              i.bi.bi-check-circle-fill
+            .advantage-content
+              h5 100% Gratuito
+              p Acesso completo a todas as funcionalidades sem custos.
+
+          .advantage-item
+            .advantage-icon
+              i.bi.bi-check-circle-fill
+            .advantage-content
+              h5 Sem Anúncios
+              p Experiência limpa e focada no que importa.
+
+          .advantage-item
+            .advantage-icon
+              i.bi.bi-check-circle-fill
+            .advantage-content
+              h5 Privacidade Garantida
+              p Os seus dados nunca são partilhados com terceiros.
+
+          .advantage-item
+            .advantage-icon
+              i.bi.bi-check-circle-fill
+            .advantage-content
+              h5 Suporte Dedicado
+              p Equipa pronta para ajudar sempre que precisar.
+
+        .col-lg-6.animate-on-scroll
+          .advantages-visual
+            .visual-card.card-1
+              .visual-icon
+                i.bi.bi-piggy-bank
+              span Poupança
+            .visual-card.card-2
+              .visual-icon
+                i.bi.bi-graph-up
+              span Crescimento
+            .visual-card.card-3
+              .visual-icon
+                i.bi.bi-shield-check
+              span Segurança
+            .visual-card.card-4
+              .visual-icon
+                i.bi.bi-lightning
+              span Rapidez
+            .visual-center
+              img(src="/images/logo.svg" alt="FINAXIS" style="max-width: 120px;")
+
+  //- CTA FINAL
+  .cta-section
+    .cta-background
+      .cta-shapes
+        .cta-shape.cta-shape-1
+        .cta-shape.cta-shape-2
+    .container.position-relative
+      .cta-content.text-center.animate-on-scroll
+        h2.cta-title
+          | Pronto para transformar as suas 
+          span.text-white finanças?
+        p.cta-subtitle
+          | Junte-se a mais de 2.500 utilizadores que já controlam o seu dinheiro com a FINAXIS
+        .cta-buttons
+          a.btn.btn-light.btn-cta.me-3(href="/auth/registar")
+            i.bi.bi-rocket-takeoff.me-2
+            | Criar Conta Grátis
+          a.btn.btn-outline-light.btn-cta(href="/auth/login")
+            i.bi.bi-box-arrow-in-right.me-2
+            | Já tenho conta
+        .cta-guarantee
+          i.bi.bi-shield-check.me-2
+          | Registo gratuito • Sem cartão de crédito • Cancele quando quiser
+
+block scripts
+  script.
+    // Animação de contagem
+    function animateCounter(element, target, duration = 2000) {
+      let start = 0;
+      const increment = target / (duration / 16);
+      const isFloat = target.toString().includes('.');
+      
+      function update() {
+        start += increment;
+        if (start < target) {
+          element.textContent = isFloat ? start.toFixed(1) : Math.floor(start).toLocaleString('pt-PT');
+          requestAnimationFrame(update);
+        } else {
+          element.textContent = isFloat ? target.toFixed(1) : target.toLocaleString('pt-PT');
+        }
+      }
+      update();
+    }
+
+    // Intersection Observer para animações on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animated');
+          
+          // Animar contadores
+          const counters = entry.target.querySelectorAll('.counter');
+          counters.forEach(counter => {
+            const target = parseFloat(counter.textContent);
+            animateCounter(counter, target);
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+      observer.observe(el);
+    });
+
+    // Parallax suave no hero
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const hero = document.querySelector('.hero-visual');
+      if (hero && scrolled < 600) {
+        hero.style.transform = `translateY(${scrolled * 0.1}px)`;
+      }
+    });

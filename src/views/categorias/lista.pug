@@ -1,0 +1,152 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3.mb-0
+      i.bi.bi-tags.me-2
+      | Categorias
+    button.btn.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalCategoria" onclick="abrirModalNovaCategoria()")
+      i.bi.bi-plus.me-1
+      | Nova Categoria
+
+  .row
+    .col-md-6
+      .card.mb-4
+        .card-header.bg-success.text-white
+          h5.mb-0
+            i.bi.bi-arrow-up-circle.me-2
+            | Receitas
+        .list-group.list-group-flush
+          - const receitasCategorias = categorias.filter(c => c.tipo === 'receita')
+          if receitasCategorias.length === 0
+            .list-group-item.text-center.text-muted.py-4
+              | Nenhuma categoria de receita
+          else
+            each cat in receitasCategorias
+              .list-group-item.d-flex.justify-content-between.align-items-center
+                .d-flex.align-items-center
+                  span.badge.me-2(style=`background-color: ${cat.cor}`) &nbsp;
+                  | #{cat.nome}
+                  small.text-muted.ms-2 (#{cat.total_transacoes} transações)
+                .btn-group.btn-group-sm
+                  a.btn.btn-outline-primary(href=`/categorias/${cat.id}/editar` title="Editar")
+                    i.bi.bi-pencil
+                  if cat.utilizador_id
+                    form.d-inline(method="POST" action=`/categorias/${cat.id}/eliminar` onsubmit="return confirm('Tem a certeza? As transações serão desvinculadas.')")
+                      button.btn.btn-outline-danger(type="submit" title="Eliminar")
+                        i.bi.bi-trash
+
+    .col-md-6
+      .card.mb-4
+        .card-header.bg-danger.text-white
+          h5.mb-0
+            i.bi.bi-arrow-down-circle.me-2
+            | Despesas
+        .list-group.list-group-flush
+          - const despesasCategorias = categorias.filter(c => c.tipo === 'despesa')
+          if despesasCategorias.length === 0
+            .list-group-item.text-center.text-muted.py-4
+              | Nenhuma categoria de despesa
+          else
+            each cat in despesasCategorias
+              .list-group-item.d-flex.justify-content-between.align-items-center
+                .d-flex.align-items-center
+                  span.badge.me-2(style=`background-color: ${cat.cor}`) &nbsp;
+                  | #{cat.nome}
+                  small.text-muted.ms-2 (#{cat.total_transacoes} transações)
+                .btn-group.btn-group-sm
+                  a.btn.btn-outline-primary(href=`/categorias/${cat.id}/editar` title="Editar")
+                    i.bi.bi-pencil
+                  if cat.utilizador_id
+                    form.d-inline(method="POST" action=`/categorias/${cat.id}/eliminar` onsubmit="return confirm('Tem a certeza? As transações serão desvinculadas.')")
+                      button.btn.btn-outline-danger(type="submit" title="Eliminar")
+                        i.bi.bi-trash
+
+  //- Modal para Nova Categoria
+  .modal.fade#modalCategoria(tabindex="-1" aria-labelledby="modalCategoriaLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalCategoriaLabel
+            i.bi.bi-plus-circle.me-2
+            | Nova Categoria
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formCategoria
+            .mb-3
+              label.form-label Nome *
+              input.form-control#modalNomeCategoria(type="text" name="nome" required placeholder="Ex: Alimentação, Transporte...")
+            
+            .mb-3
+              label.form-label Tipo *
+              .btn-group.w-100(role="group")
+                input.btn-check#modalCatTipoReceita(type="radio" name="catTipo" value="receita" autocomplete="off")
+                label.btn.btn-outline-success(for="modalCatTipoReceita")
+                  i.bi.bi-arrow-up.me-1
+                  | Receita
+                input.btn-check#modalCatTipoDespesa(type="radio" name="catTipo" value="despesa" autocomplete="off" checked)
+                label.btn.btn-outline-danger(for="modalCatTipoDespesa")
+                  i.bi.bi-arrow-down.me-1
+                  | Despesa
+            
+            .mb-3
+              label.form-label Cor
+              .d-flex.align-items-center.gap-3
+                input.form-control.form-control-color#modalCorCategoria(type="color" name="cor" value="#6c757d" style="width: 60px; height: 40px;")
+                span#modalCorPreview.badge.fs-6(style="background-color: #6c757d; padding: 10px 20px;") Pré-visualização
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary(type="button" onclick="guardarCategoria()")
+            i.bi.bi-check.me-1
+            | Guardar
+
+block scripts
+  script.
+    // Atualizar pré-visualização da cor
+    document.getElementById('modalCorCategoria').addEventListener('input', function(e) {
+      document.getElementById('modalCorPreview').style.backgroundColor = e.target.value;
+    });
+
+    function abrirModalNovaCategoria() {
+      document.getElementById('formCategoria').reset();
+      document.getElementById('modalCatTipoDespesa').checked = true;
+      document.getElementById('modalCorCategoria').value = '#6c757d';
+      document.getElementById('modalCorPreview').style.backgroundColor = '#6c757d';
+      document.getElementById('modalCategoriaLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Categoria';
+    }
+
+    async function guardarCategoria() {
+      const form = document.getElementById('formCategoria');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const dados = {
+        nome: document.getElementById('modalNomeCategoria').value,
+        tipo: document.querySelector('input[name="catTipo"]:checked').value,
+        cor: document.getElementById('modalCorCategoria').value
+      };
+
+      try {
+        const response = await fetch('/categorias/api/criar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        if (response.ok) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalCategoria'));
+          modal.hide();
+          window.location.reload();
+        } else {
+          const erro = await response.json();
+          alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao guardar categoria');
+      }
+    }

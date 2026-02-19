@@ -1,0 +1,56 @@
+extends ../layout
+
+block content
+  .row.justify-content-center.py-2
+    .col-md-5.col-lg-4
+      .card.shadow-sm
+        .card-body.p-3
+          .text-center.mb-2
+            img.auth-logo(src="/images/logo.svg" alt="FINAXIS" style="max-width: 120px;")
+            h4.mt-2.mb-1 Criar Conta
+            p.text-muted.small.mb-0 Registe-se gratuitamente
+
+          if erro
+            .alert.alert-danger.py-2.d-flex.align-items-center.mb-2
+              i.bi.bi-exclamation-triangle.me-2
+              small #{erro}
+
+          form(method="POST" action="/auth/registar")
+            .mb-2
+              label.form-label.small.mb-1(for="nome") Nome
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-person
+                input.form-control(type="text" name="nome" id="nome" required placeholder="O seu nome")
+
+            .mb-2
+              label.form-label.small.mb-1(for="email") Email
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-envelope
+                input.form-control(type="email" name="email" id="email" required placeholder="seu@email.com")
+
+            .mb-2
+              label.form-label.small.mb-1(for="password") Palavra-passe
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-lock
+                input.form-control(type="password" name="password" id="password" required minlength="6" placeholder="Mínimo 6 caracteres")
+
+            .mb-3
+              label.form-label.small.mb-1(for="confirmarPassword") Confirmar Palavra-passe
+              .input-group.input-group-sm
+                span.input-group-text
+                  i.bi.bi-lock-fill
+                input.form-control(type="password" name="confirmarPassword" id="confirmarPassword" required placeholder="Repita a palavra-passe")
+
+            button.btn.btn-primary.w-100(type="submit")
+              i.bi.bi-person-plus.me-2
+              | Criar Conta
+
+          hr.my-2
+
+          .text-center
+            p.mb-0.text-muted.small
+              | Já tem conta?
+              a.ms-1(href="/auth/login") Entrar

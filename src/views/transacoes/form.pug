@@ -1,0 +1,60 @@
+extends ../layout
+
+block content
+  .row.justify-content-center
+    .col-lg-6
+      .card
+        .card-header
+          h5.mb-0
+            if acao === 'criar'
+              i.bi.bi-plus-circle.me-2
+              | Nova Transação
+            else
+              i.bi.bi-pencil.me-2
+              | Editar Transação
+        .card-body
+          form(method="POST" action=acao === 'criar' ? '/transacoes' : `/transacoes/${transacao.id}`)
+            .mb-3
+              label.form-label Descrição *
+              input.form-control(type="text" name="descricao" value=transacao.descricao required placeholder="Ex: Salário, Renda, Supermercado...")
+            
+            .row.mb-3
+              .col-md-6
+                label.form-label Valor *
+                .input-group
+                  span.input-group-text €
+                  input.form-control(type="number" name="valor" step="0.01" min="0.01" value=transacao.valor required placeholder="0,00")
+              .col-md-6
+                label.form-label Data *
+                input.form-control(type="date" name="data" value=transacao.data required)
+            
+            .mb-3
+              label.form-label Tipo *
+              .btn-group.w-100(role="group")
+                input.btn-check(type="radio" name="tipo" id="tipoReceita" value="receita" autocomplete="off" checked=(transacao.tipo === 'receita' || !transacao.tipo))
+                label.btn.btn-outline-success(for="tipoReceita")
+                  i.bi.bi-arrow-up.me-1
+                  | Receita
+                input.btn-check(type="radio" name="tipo" id="tipoDespesa" value="despesa" autocomplete="off" checked=(transacao.tipo === 'despesa'))
+                label.btn.btn-outline-danger(for="tipoDespesa")
+                  i.bi.bi-arrow-down.me-1
+                  | Despesa
+            
+            .mb-4
+              label.form-label Categoria
+              select.form-select(name="categoria_id" id="selectCategoria")
+                option(value="") Sem categoria
+                optgroup(label="Receitas" id="categoriasReceita")
+                  each cat in categorias.filter(c => c.tipo === 'receita')
+                    option(value=cat.id selected=(transacao.categoria_id == cat.id)) #{cat.nome}
+                optgroup(label="Despesas" id="categoriasDespesa")
+                  each cat in categorias.filter(c => c.tipo === 'despesa')
+                    option(value=cat.id selected=(transacao.categoria_id == cat.id)) #{cat.nome}
+            
+            .d-flex.gap-2
+              button.btn.btn-primary(type="submit")
+                i.bi.bi-check.me-1
+                | Guardar
+              a.btn.btn-outline-secondary(href="/transacoes")
+                i.bi.bi-x.me-1
+                | Cancelar

@@ -1,0 +1,51 @@
+extends ../layout
+
+block content
+  .row.justify-content-center
+    .col-lg-5
+      .card
+        .card-header
+          h5.mb-0
+            if acao === 'criar'
+              i.bi.bi-plus-circle.me-2
+              | Nova Categoria
+            else
+              i.bi.bi-pencil.me-2
+              | Editar Categoria
+        .card-body
+          form(method="POST" action=acao === 'criar' ? '/categorias' : `/categorias/${categoria.id}`)
+            .mb-3
+              label.form-label Nome *
+              input.form-control(type="text" name="nome" value=categoria.nome required placeholder="Ex: Alimentação, Transporte...")
+            
+            .mb-3
+              label.form-label Tipo *
+              .btn-group.w-100(role="group")
+                input.btn-check(type="radio" name="tipo" id="tipoReceita" value="receita" autocomplete="off" checked=(categoria.tipo === 'receita'))
+                label.btn.btn-outline-success(for="tipoReceita")
+                  i.bi.bi-arrow-up.me-1
+                  | Receita
+                input.btn-check(type="radio" name="tipo" id="tipoDespesa" value="despesa" autocomplete="off" checked=(categoria.tipo === 'despesa' || !categoria.tipo))
+                label.btn.btn-outline-danger(for="tipoDespesa")
+                  i.bi.bi-arrow-down.me-1
+                  | Despesa
+            
+            .mb-4
+              label.form-label Cor
+              .d-flex.align-items-center.gap-3
+                input.form-control.form-control-color(type="color" name="cor" value=categoria.cor style="width: 60px; height: 40px;")
+                span#corPreview.badge.fs-6(style=`background-color: ${categoria.cor}; padding: 10px 20px;`) Pré-visualização
+            
+            .d-flex.gap-2
+              button.btn.btn-primary(type="submit")
+                i.bi.bi-check.me-1
+                | Guardar
+              a.btn.btn-outline-secondary(href="/categorias")
+                i.bi.bi-x.me-1
+                | Cancelar
+
+block scripts
+  script.
+    document.querySelector('input[name="cor"]').addEventListener('input', function(e) {
+      document.getElementById('corPreview').style.backgroundColor = e.target.value;
+    });

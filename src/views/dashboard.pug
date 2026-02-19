@@ -1,0 +1,223 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3.mb-0
+      i.bi.bi-speedometer2.me-2
+      | Dashboard
+    .btn-group
+      a.btn.btn-outline-primary(href=`/dashboard?mes=${mesAtual - 1 < 1 ? 12 : mesAtual - 1}&ano=${mesAtual - 1 < 1 ? anoAtual - 1 : anoAtual}`)
+        i.bi.bi-chevron-left
+      button.btn.btn-outline-primary.dropdown-toggle(type="button" data-bs-toggle="dropdown")
+        | #{nomeMes} #{anoAtual}
+      ul.dropdown-menu
+        each mes, index in meses
+          li
+            a.dropdown-item(href=`/dashboard?mes=${index + 1}&ano=${anoAtual}`) #{mes}
+      a.btn.btn-outline-primary(href=`/dashboard?mes=${mesAtual + 1 > 12 ? 1 : mesAtual + 1}&ano=${mesAtual + 1 > 12 ? anoAtual + 1 : anoAtual}`)
+        i.bi.bi-chevron-right
+
+  .row.g-4.mb-4
+    .col-md-4
+      .card.border-success.h-100
+        .card-body.text-center
+          .text-success.mb-2
+            i.bi.bi-arrow-up-circle(style="font-size: 2rem;")
+          h6.card-subtitle.text-muted Receitas
+          h3.card-title.text-success.mb-0
+            | #{totalReceitas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+    
+    .col-md-4
+      .card.border-danger.h-100
+        .card-body.text-center
+          .text-danger.mb-2
+            i.bi.bi-arrow-down-circle(style="font-size: 2rem;")
+          h6.card-subtitle.text-muted Despesas
+          h3.card-title.text-danger.mb-0
+            | #{totalDespesas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+    
+    .col-md-4
+      .card.h-100(class=saldo >= 0 ? 'border-primary' : 'border-warning')
+        .card-body.text-center
+          .mb-2(class=saldo >= 0 ? 'text-primary' : 'text-warning')
+            i.bi.bi-wallet2(style="font-size: 2rem;")
+          h6.card-subtitle.text-muted Saldo
+          h3.card-title.mb-0(class=saldo >= 0 ? 'text-primary' : 'text-warning')
+            | #{saldo.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+
+  .row.g-4
+    .col-lg-8
+      .card
+        .card-header.d-flex.justify-content-between.align-items-center
+          h5.mb-0
+            i.bi.bi-clock-history.me-2
+            | Últimas Transações
+          button.btn.btn-sm.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()")
+            i.bi.bi-plus.me-1
+            | Nova
+        .card-body
+          if ultimasTransacoes.length === 0
+            .text-center.text-muted.py-4
+              i.bi.bi-inbox(style="font-size: 3rem;")
+              p.mt-2 Nenhuma transação encontrada
+          else
+            .table-responsive
+              table.table.table-hover.mb-0
+                tbody
+                  each transacao in ultimasTransacoes
+                    tr
+                      td(style="width: 50px;")
+                        if transacao.tipo === 'receita'
+                          span.badge.bg-success
+                            i.bi.bi-arrow-up
+                        else
+                          span.badge.bg-danger
+                            i.bi.bi-arrow-down
+                      td
+                        strong #{transacao.descricao}
+                        if transacao.categoria_nome
+                          br
+                          small.text-muted
+                            span.badge(style=`background-color: ${transacao.categoria_cor}`) #{transacao.categoria_nome}
+                      td.text-end
+                        span(class=transacao.tipo === 'receita' ? 'text-success' : 'text-danger')
+                          | #{parseFloat(transacao.valor).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                        br
+                        small.text-muted #{new Date(transacao.data).toLocaleDateString('pt-PT')}
+    
+    .col-lg-4
+      .card
+        .card-header
+          h5.mb-0
+            i.bi.bi-pie-chart.me-2
+            | Despesas por Categoria
+        .card-body
+          if despesasPorCategoria.length === 0
+            .text-center.text-muted.py-4
+              i.bi.bi-pie-chart(style="font-size: 3rem;")
+              p.mt-2 Sem despesas no período
+          else
+            canvas#chartDespesas(height="250")
+
+  //- Modal para Nova Transação
+  .modal.fade#modalTransacao(tabindex="-1" aria-labelledby="modalTransacaoLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalTransacaoLabel
+            i.bi.bi-plus-circle.me-2
+            | Nova Transação
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formTransacao
+            .mb-3
+              label.form-label Descrição *
+              input.form-control#modalDescricao(type="text" name="descricao" required placeholder="Ex: Salário, Renda, Supermercado...")
+            
+            .row.mb-3
+              .col-md-6
+                label.form-label Valor *
+                .input-group
+                  span.input-group-text €
+                  input.form-control#modalValor(type="number" name="valor" step="0.01" min="0.01" required placeholder="0,00")
+              .col-md-6
+                label.form-label Data *
+                input.form-control#modalData(type="date" name="data" required)
+            
+            .mb-3
+              label.form-label Tipo *
+              .btn-group.w-100(role="group")
+                input.btn-check#modalTipoReceita(type="radio" name="tipo" value="receita" autocomplete="off" checked)
+                label.btn.btn-outline-success(for="modalTipoReceita")
+                  i.bi.bi-arrow-up.me-1
+                  | Receita
+                input.btn-check#modalTipoDespesa(type="radio" name="tipo" value="despesa" autocomplete="off")
+                label.btn.btn-outline-danger(for="modalTipoDespesa")
+                  i.bi.bi-arrow-down.me-1
+                  | Despesa
+            
+            .mb-3
+              label.form-label Categoria
+              select.form-select#modalCategoria(name="categoria_id")
+                option(value="") Sem categoria
+                optgroup(label="Receitas" id="modalCategoriasReceita")
+                  each cat in (categorias || []).filter(c => c.tipo === 'receita')
+                    option(value=cat.id) #{cat.nome}
+                optgroup(label="Despesas" id="modalCategoriasDespesa")
+                  each cat in (categorias || []).filter(c => c.tipo === 'despesa')
+                    option(value=cat.id) #{cat.nome}
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary#btnGuardar(type="button" onclick="guardarTransacao()")
+            i.bi.bi-check.me-1
+            | Guardar
+
+block scripts
+  script.
+    function abrirModalNova() {
+      document.getElementById('formTransacao').reset();
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('modalData').value = hoje;
+      document.getElementById('modalTipoReceita').checked = true;
+      document.getElementById('modalTransacaoLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
+    }
+
+    async function guardarTransacao() {
+      const form = document.getElementById('formTransacao');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const dados = {
+        descricao: document.getElementById('modalDescricao').value,
+        valor: document.getElementById('modalValor').value,
+        data: document.getElementById('modalData').value,
+        tipo: document.querySelector('input[name="tipo"]:checked').value,
+        categoria_id: document.getElementById('modalCategoria').value
+      };
+
+      try {
+        const response = await fetch('/transacoes/api/criar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        if (response.ok) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao'));
+          modal.hide();
+          window.location.reload();
+        } else {
+          const erro = await response.json();
+          alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao guardar transação');
+      }
+    }
+
+  if despesasPorCategoria.length > 0
+    script.
+      const ctx = document.getElementById('chartDespesas').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: !{JSON.stringify(despesasPorCategoria.map(c => c.nome))},
+          datasets: [{
+            data: !{JSON.stringify(despesasPorCategoria.map(c => parseFloat(c.total)))},
+            backgroundColor: !{JSON.stringify(despesasPorCategoria.map(c => c.cor))}
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });

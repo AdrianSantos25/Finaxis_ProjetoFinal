@@ -1,0 +1,184 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3.mb-0
+      i.bi.bi-list-ul.me-2
+      | Transações
+    button.btn.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()")
+      i.bi.bi-plus.me-1
+      | Nova Transação
+
+  .card.mb-4
+    .card-body
+      form.row.g-3(method="GET" action="/transacoes")
+        .col-md-4
+          label.form-label Tipo
+          select.form-select(name="tipo")
+            option(value="") Todos
+            option(value="receita" selected=(filtroTipo === 'receita')) Receitas
+            option(value="despesa" selected=(filtroTipo === 'despesa')) Despesas
+        .col-md-4
+          label.form-label Categoria
+          select.form-select(name="categoria")
+            option(value="") Todas
+            each cat in categorias
+              option(value=cat.id selected=(filtroCategoria == cat.id)) #{cat.nome} (#{cat.tipo})
+        .col-md-4.d-flex.align-items-end
+          button.btn.btn-outline-primary.me-2(type="submit")
+            i.bi.bi-funnel.me-1
+            | Filtrar
+          a.btn.btn-outline-secondary(href="/transacoes")
+            i.bi.bi-x.me-1
+            | Limpar
+
+  .card
+    .card-body
+      if transacoes.length === 0
+        .text-center.text-muted.py-5
+          i.bi.bi-inbox(style="font-size: 4rem;")
+          p.mt-3.mb-0 Nenhuma transação encontrada
+          button.btn.btn-primary.mt-3(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()") Adicionar primeira transação
+      else
+        .table-responsive
+          table.table.table-hover
+            thead.table-light
+              tr
+                th Data
+                th Descrição
+                th Categoria
+                th.text-end Valor
+                th.text-end Ações
+            tbody
+              each transacao in transacoes
+                tr
+                  td #{new Date(transacao.data).toLocaleDateString('pt-PT')}
+                  td #{transacao.descricao}
+                  td
+                    if transacao.categoria_nome
+                      span.badge(style=`background-color: ${transacao.categoria_cor}`) #{transacao.categoria_nome}
+                    else
+                      span.text-muted -
+                  td.text-end
+                    span(class=transacao.tipo === 'receita' ? 'text-success' : 'text-danger')
+                      if transacao.tipo === 'receita'
+                        | +
+                      else
+                        | -
+                      | #{parseFloat(transacao.valor).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                  td.text-end
+                    a.btn.btn-sm.btn-outline-primary.me-1(href=`/transacoes/${transacao.id}/editar` title="Editar")
+                      i.bi.bi-pencil
+                    form.d-inline(method="POST" action=`/transacoes/${transacao.id}/eliminar` onsubmit="return confirm('Tem a certeza que pretende eliminar?')")
+                      button.btn.btn-sm.btn-outline-danger(type="submit" title="Eliminar")
+                        i.bi.bi-trash
+
+  //- Modal para Nova Transação
+  .modal.fade#modalTransacao(tabindex="-1" aria-labelledby="modalTransacaoLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalTransacaoLabel
+            i.bi.bi-plus-circle.me-2
+            | Nova Transação
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formTransacao
+            .mb-3
+              label.form-label Descrição *
+              input.form-control#modalDescricao(type="text" name="descricao" required placeholder="Ex: Salário, Renda, Supermercado...")
+            
+            .row.mb-3
+              .col-md-6
+                label.form-label Valor *
+                .input-group
+                  span.input-group-text €
+                  input.form-control#modalValor(type="number" name="valor" step="0.01" min="0.01" required placeholder="0,00")
+              .col-md-6
+                label.form-label Data *
+                input.form-control#modalData(type="date" name="data" required)
+            
+            .mb-3
+              label.form-label Tipo *
+              .btn-group.w-100(role="group")
+                input.btn-check#modalTipoReceita(type="radio" name="tipo" value="receita" autocomplete="off" checked)
+                label.btn.btn-outline-success(for="modalTipoReceita")
+                  i.bi.bi-arrow-up.me-1
+                  | Receita
+                input.btn-check#modalTipoDespesa(type="radio" name="tipo" value="despesa" autocomplete="off")
+                label.btn.btn-outline-danger(for="modalTipoDespesa")
+                  i.bi.bi-arrow-down.me-1
+                  | Despesa
+            
+            .mb-3
+              label.form-label Categoria
+              select.form-select#modalCategoria(name="categoria_id")
+                option(value="") Sem categoria
+                optgroup(label="Receitas" id="modalCategoriasReceita")
+                  each cat in categorias.filter(c => c.tipo === 'receita')
+                    option(value=cat.id) #{cat.nome}
+                optgroup(label="Despesas" id="modalCategoriasDespesa")
+                  each cat in categorias.filter(c => c.tipo === 'despesa')
+                    option(value=cat.id) #{cat.nome}
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary#btnGuardar(type="button" onclick="guardarTransacao()")
+            i.bi.bi-check.me-1
+            | Guardar
+
+block scripts
+  script.
+    function abrirModalNova() {
+      // Limpar formulário
+      document.getElementById('formTransacao').reset();
+      // Definir data de hoje
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('modalData').value = hoje;
+      // Selecionar receita por defeito
+      document.getElementById('modalTipoReceita').checked = true;
+      // Atualizar título
+      document.getElementById('modalTransacaoLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
+    }
+
+    async function guardarTransacao() {
+      const form = document.getElementById('formTransacao');
+      
+      // Validação básica
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const dados = {
+        descricao: document.getElementById('modalDescricao').value,
+        valor: document.getElementById('modalValor').value,
+        data: document.getElementById('modalData').value,
+        tipo: document.querySelector('input[name="tipo"]:checked').value,
+        categoria_id: document.getElementById('modalCategoria').value
+      };
+
+      try {
+        const response = await fetch('/transacoes/api/criar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dados)
+        });
+
+        if (response.ok) {
+          // Fechar modal e recarregar página
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao'));
+          modal.hide();
+          window.location.reload();
+        } else {
+          const erro = await response.json();
+          alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao guardar transação');
+      }
+    }
