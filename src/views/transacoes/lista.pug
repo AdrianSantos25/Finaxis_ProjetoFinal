@@ -73,6 +73,34 @@ block content
                       button.btn.btn-sm.btn-outline-danger(type="submit" title="Eliminar")
                         i.bi.bi-trash
 
+        //- Paginação
+        if paginacao && paginacao.totalPaginas > 1
+          nav.mt-4(aria-label="Navegação de páginas")
+            ul.pagination.justify-content-center.mb-0
+              li.page-item(class=paginacao.pagina <= 1 ? 'disabled' : '')
+                a.page-link(href=`/transacoes?pagina=${paginacao.pagina - 1}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) &laquo; Anterior
+              - const inicio = Math.max(1, paginacao.pagina - 2)
+              - const fim = Math.min(paginacao.totalPaginas, paginacao.pagina + 2)
+              if inicio > 1
+                li.page-item
+                  a.page-link(href=`/transacoes?pagina=1&tipo=${filtroTipo}&categoria=${filtroCategoria}`) 1
+                if inicio > 2
+                  li.page-item.disabled
+                    span.page-link ...
+              - for (let p = inicio; p <= fim; p++)
+                li.page-item(class=p === paginacao.pagina ? 'active' : '')
+                  a.page-link(href=`/transacoes?pagina=${p}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) #{p}
+              if fim < paginacao.totalPaginas
+                if fim < paginacao.totalPaginas - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/transacoes?pagina=${paginacao.totalPaginas}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) #{paginacao.totalPaginas}
+              li.page-item(class=paginacao.pagina >= paginacao.totalPaginas ? 'disabled' : '')
+                a.page-link(href=`/transacoes?pagina=${paginacao.pagina + 1}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) Seguinte &raquo;
+            .text-center.text-muted.small.mt-2
+              | A mostrar #{((paginacao.pagina - 1) * paginacao.limite) + 1}-#{Math.min(paginacao.pagina * paginacao.limite, paginacao.total)} de #{paginacao.total} transações
+
   //- Modal para Nova Transação
   .modal.fade#modalTransacao(tabindex="-1" aria-labelledby="modalTransacaoLabel" aria-hidden="true")
     .modal-dialog.modal-dialog-centered

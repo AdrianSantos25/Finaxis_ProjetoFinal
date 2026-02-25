@@ -1,11 +1,13 @@
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
 // Configuração da conexão com o MySQL
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'gestor_financeiro',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'gestor_financeiro',
+  port: parseInt(process.env.DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -14,10 +16,10 @@ const pool = mysql.createPool({
 // Função para criar o banco de dados, se não existir
 async function createDatabase() {
   const connection = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root',
-    port: 3306
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    port: parseInt(process.env.DB_PORT) || 3306
   });
 
   await connection.query('CREATE DATABASE IF NOT EXISTS gestor_financeiro');

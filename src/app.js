@@ -1,12 +1,33 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const helmet = require('helmet');
+const compression = require('compression');
+require('dotenv').config();
 
 const db = require('./database');
 const { verificarAutenticacao, adicionarVariaveisLocais } = require('./middlewares/auth');
+const { errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Segurança - Headers HTTP
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "cdn.jsdelivr.net", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
+
+// Compression de respostas
+app.use(compression());
 
 // Configurar Pug
 app.set('view engine', 'pug');
@@ -25,6 +46,7 @@ app.use(session({
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: 'strict',
     maxAge: 24 * 60 * 60 * 1000 // 24 horas
   }
 }));
@@ -59,15 +81,8 @@ app.use((req, res) => {
   });
 });
 
-// Middleware de erro global
-app.use((err, req, res, next) => {
-  console.error('Erro:', err);
-  res.status(500).render('erro', {
-    titulo: 'Erro interno',
-    mensagem: 'Ocorreu um erro no servidor. Tente novamente mais tarde.',
-    codigo: 500
-  });
-});
+// Middleware de erro global robusto
+app.use(errorHandler);
 
 // Iniciar servidor
 app.listen(PORT, () => {

@@ -2,8 +2,58 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const db = require('../database');
 const { enviarEmailRecuperacao } = require('../email');
+
+// Rate limiter para login (máx 5 tentativas por 15 minutos)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Demasiadas tentativas de login. Tente novamente em 15 minutos.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.render('auth/login', {
+      titulo: 'Entrar',
+      erro: 'Demasiadas tentativas de login. Tente novamente em 15 minutos.',
+      hideFooter: true
+    });
+  }
+});
+
+// Rate limiter para registo (máx 3 por hora)
+const registoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: 'Demasiados registos. Tente novamente mais tarde.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.render('auth/registar', {
+      titulo: 'Criar Conta',
+      erro: 'Demasiados registos. Tente novamente mais tarde.',
+      hideFooter: true
+    });
+  }
+});
+
+// Rate limiter para recuperação de senha (máx 3 por hora)
+const recuperarLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: 'Demasiados pedidos de recuperação. Tente novamente mais tarde.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.render('auth/recuperar-senha', {
+      titulo: 'Recuperar Palavra-passe',
+      erro: 'Demasiados pedidos de recuperação. Tente novamente mais tarde.',
+      sucesso: null,
+      hideFooter: true
+    });
+  }
+});
 
 // Página de login
 router.get('/login', (req, res) => {
@@ -19,7 +69,7 @@ router.get('/login', (req, res) => {
 });
 
 // Processar login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -82,7 +132,7 @@ router.get('/registar', (req, res) => {
 });
 
 // Processar registo
-router.post('/registar', async (req, res) => {
+router.post('/registar', registoLimiter, async (req, res) => {
   try {
     const { nome, email, password, confirmarPassword } = req.body;
     
@@ -177,7 +227,7 @@ router.get('/recuperar-senha', (req, res) => {
 });
 
 // Processar pedido de recuperação
-router.post('/recuperar-senha', async (req, res) => {
+router.post('/recuperar-senha', recuperarLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     

@@ -11,9 +11,13 @@ block content
           div
             h1.h3.mb-0 Relatórios Anuais
             p.text-muted.mb-0 Análise financeira de #{ano}
-        .btn-group
-          each anoOpcao in anosDisponiveis
-            a.btn(href=`/relatorios?ano=${anoOpcao}` class=ano === anoOpcao ? 'btn-primary' : 'btn-outline-primary') #{anoOpcao}
+        .d-flex.align-items-center.gap-2
+          a.btn.btn-outline-success(href=`/relatorios/exportar/csv?ano=${ano}` title="Exportar CSV")
+            i.bi.bi-file-earmark-spreadsheet.me-1
+            | Exportar CSV
+          .btn-group
+            each anoOpcao in anosDisponiveis
+              a.btn(href=`/relatorios?ano=${anoOpcao}` class=ano === anoOpcao ? 'btn-primary' : 'btn-outline-primary') #{anoOpcao}
 
   //- Cards de resumo anual
   .row.g-3.mb-4
