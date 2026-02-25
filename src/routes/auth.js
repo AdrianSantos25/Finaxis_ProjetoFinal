@@ -421,4 +421,43 @@ router.post('/redefinir-senha/:token', async (req, res) => {
   }
 });
 
+// Eliminar conta
+router.post('/eliminar-conta', async (req, res, next) => {
+  try {
+    if (!req.session.utilizador) {
+      return res.status(401).json({ success: false, message: 'Não autenticado.' });
+    }
+
+    const utilizadorId = req.session.utilizador.id;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'A palavra-passe é obrigatória.' });
+    }
+
+    // Verificar password
+    const [rows] = await db.query('SELECT password FROM utilizadores WHERE id = ?', [utilizadorId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Utilizador não encontrado.' });
+    }
+
+    const passwordCorreta = await bcrypt.compare(password, rows[0].password);
+    if (!passwordCorreta) {
+      return res.status(401).json({ success: false, message: 'Palavra-passe incorreta.' });
+    }
+
+    // Eliminar dados na ordem correta (foreign keys)
+    await db.query('DELETE FROM transacoes WHERE utilizador_id = ?', [utilizadorId]);
+    await db.query('DELETE FROM categorias WHERE utilizador_id = ?', [utilizadorId]);
+    await db.query('DELETE FROM utilizadores WHERE id = ?', [utilizadorId]);
+
+    // Destruir sessão
+    req.session.destroy(() => {
+      res.json({ success: true, message: 'Conta eliminada com sucesso.' });
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
