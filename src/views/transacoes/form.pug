@@ -3,6 +3,10 @@ extends ../layout
 block content
   .row.justify-content-center
     .col-lg-6
+      if erro
+        .alert.alert-danger.mb-3 #{erro}
+      if sucesso
+        .alert.alert-success.mb-3 #{sucesso}
       .card
         .card-header
           h5.mb-0
@@ -50,6 +54,18 @@ block content
                 optgroup(label="Despesas" id="categoriasDespesa")
                   each cat in categorias.filter(c => c.tipo === 'despesa')
                     option(value=cat.id selected=(transacao.categoria_id == cat.id)) #{cat.nome}
+
+            .mb-4
+              .form-check.form-switch
+                input.form-check-input#recorrente(type="checkbox" name="recorrente" value="1" checked=(transacao.recorrente == 1))
+                label.form-check-label(for="recorrente") Transação Recorrente
+              #frequenciaContainer(style=transacao.recorrente == 1 ? '' : 'display:none;')
+                .mt-2
+                  label.form-label Frequência
+                  select.form-select(name="frequencia")
+                    option(value="mensal" selected=(transacao.frequencia === 'mensal')) Mensal
+                    option(value="semanal" selected=(transacao.frequencia === 'semanal')) Semanal
+                    option(value="anual" selected=(transacao.frequencia === 'anual')) Anual
             
             .d-flex.gap-2
               button.btn.btn-primary(type="submit")
@@ -58,3 +74,14 @@ block content
               a.btn.btn-outline-secondary(href="/transacoes")
                 i.bi.bi-x.me-1
                 | Cancelar
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      var recorrente = document.getElementById('recorrente');
+      if (recorrente) {
+        recorrente.addEventListener('change', function() {
+          document.getElementById('frequenciaContainer').style.display = this.checked ? '' : 'none';
+        });
+      }
+    });

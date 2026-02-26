@@ -10,12 +10,18 @@ router.get('/', async (req, res, next) => {
     const utilizadorId = req.session.utilizador.id;
     const tipo = req.query.tipo || '';
     const categoria = req.query.categoria || '';
+    const pesquisa = req.query.pesquisa || '';
+    const dataInicio = req.query.dataInicio || '';
+    const dataFim = req.query.dataFim || '';
     const pagina = parseInt(req.query.pagina) || 1;
     const limite = 20;
 
     const { transacoes, paginacao } = await transacoesService.listar(utilizadorId, {
       tipo,
       categoria,
+      pesquisa,
+      dataInicio,
+      dataFim,
       pagina,
       limite
     });
@@ -28,6 +34,9 @@ router.get('/', async (req, res, next) => {
       categorias,
       filtroTipo: tipo,
       filtroCategoria: categoria,
+      filtroPesquisa: pesquisa,
+      filtroDataInicio: dataInicio,
+      filtroDataFim: dataFim,
       paginacao
     });
   } catch (err) {

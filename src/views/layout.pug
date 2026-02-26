@@ -32,6 +32,10 @@ html(lang="pt-PT")
                   i.bi.bi-tags.me-1
                   | Categorias
               li.nav-item
+                a.nav-link(href="/orcamentos" class=(titulo === 'Orçamentos' ? 'active' : ''))
+                  i.bi.bi-bullseye.me-1
+                  | Orçamentos
+              li.nav-item
                 a.nav-link(href="/relatorios" class=(titulo === 'Relatórios' ? 'active' : ''))
                   i.bi.bi-graph-up.me-1
                   | Relatórios
@@ -144,6 +148,8 @@ html(lang="pt-PT")
                   a(href="/transacoes") Transações
                 li
                   a(href="/categorias") Categorias
+                li
+                  a(href="/orcamentos") Orçamentos
                 li
                   a(href="/relatorios") Relatórios
                 li

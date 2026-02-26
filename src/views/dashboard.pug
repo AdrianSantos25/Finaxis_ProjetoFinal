@@ -47,12 +47,28 @@ block content
 
   .row.g-4
     .col-lg-8
+      //- Alertas de orçamento
+      if alertasOrcamento && alertasOrcamento.length > 0
+        each alerta in alertasOrcamento
+          if alerta.estado === 'ultrapassado'
+            .alert.alert-danger.d-flex.align-items-center.mb-3
+              i.bi.bi-exclamation-triangle-fill.me-2
+              div
+                strong Orçamento ultrapassado!
+                |  #{alerta.categoria_nome}: #{alerta.gasto_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / #{alerta.limite.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} (#{alerta.percentagemReal}%)
+          else if alerta.estado === 'alerta'
+            .alert.alert-warning.d-flex.align-items-center.mb-3
+              i.bi.bi-exclamation-circle.me-2
+              div
+                strong Atenção!
+                |  #{alerta.categoria_nome}: #{alerta.gasto_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / #{alerta.limite.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} (#{alerta.percentagemReal}%)
+
       .card
         .card-header.d-flex.justify-content-between.align-items-center
           h5.mb-0
             i.bi.bi-clock-history.me-2
             | Últimas Transações
-          button.btn.btn-sm.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()")
+          button.btn.btn-sm.btn-primary#btnAbrirModalDash(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao")
             i.bi.bi-plus.me-1
             | Nova
         .card-body
@@ -98,6 +114,28 @@ block content
               p.mt-2 Sem despesas no período
           else
             canvas#chartDespesas(height="250")
+
+      //- Orçamentos/Metas do mês
+      if orcamentos && orcamentos.length > 0
+        .card.mt-4
+          .card-header.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.bi.bi-bullseye.me-2
+              | Orçamentos do Mês
+            a.btn.btn-sm.btn-outline-primary(href="/orcamentos")
+              | Ver todos
+          .card-body
+            each orc in orcamentos
+              .mb-3
+                .d-flex.justify-content-between.align-items-center.mb-1
+                  .d-flex.align-items-center
+                    span.badge.me-2(style=`background-color: ${orc.categoria_cor}; font-size: 0.7rem;`) #{orc.categoria_nome}
+                    if orc.estado === 'ultrapassado'
+                      i.bi.bi-exclamation-triangle-fill.text-danger.ms-1
+                  small.text-muted #{orc.gasto_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / #{orc.limite.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                .progress(style="height: 8px;")
+                  - const barClass = orc.estado === 'ultrapassado' ? 'bg-danger' : (orc.estado === 'alerta' ? 'bg-warning' : 'bg-success')
+                  .progress-bar(class=barClass role="progressbar" style=`width: ${orc.percentagem}%`)
 
   //- Modal para Nova Transação
   .modal.fade#modalTransacao(tabindex="-1" aria-labelledby="modalTransacaoLabel" aria-hidden="true")
@@ -146,59 +184,49 @@ block content
                 optgroup(label="Despesas" id="modalCategoriasDespesa")
                   each cat in (categorias || []).filter(c => c.tipo === 'despesa')
                     option(value=cat.id) #{cat.nome}
+            .mb-3
+              .form-check.form-switch
+                input.form-check-input#modalRecorrente(type="checkbox")
+                label.form-check-label(for="modalRecorrente") Transação Recorrente
+              #modalFrequenciaContainer(style="display:none;")
+                .mt-2
+                  select.form-select#modalFrequencia
+                    option(value="mensal") Mensal
+                    option(value="semanal") Semanal
+                    option(value="anual") Anual
         .modal-footer
           button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
             i.bi.bi-x.me-1
             | Cancelar
-          button.btn.btn-primary#btnGuardar(type="button" onclick="guardarTransacao()")
+          button.btn.btn-primary#btnGuardar(type="button")
             i.bi.bi-check.me-1
             | Guardar
 
 block scripts
   script.
-    function abrirModalNova() {
-      document.getElementById('formTransacao').reset();
-      const hoje = new Date().toISOString().split('T')[0];
-      document.getElementById('modalData').value = hoje;
-      document.getElementById('modalTipoReceita').checked = true;
-      document.getElementById('modalTransacaoLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
-    }
-
-    async function guardarTransacao() {
-      const form = document.getElementById('formTransacao');
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
+    document.addEventListener('DOMContentLoaded', function() {
+      function abrirModalNova() {
+        var f = document.getElementById('formTransacao'); if (f) f.reset();
+        const hoje = new Date().toISOString().split('T')[0];
+        var md = document.getElementById('modalData'); if (md) md.value = hoje;
+        var tipoR = document.getElementById('modalTipoReceita'); if (tipoR) tipoR.checked = true;
+        var rec = document.getElementById('modalRecorrente'); if (rec) rec.checked = false;
+        var freq = document.getElementById('modalFrequenciaContainer'); if (freq) freq.style.display = 'none';
+        var label = document.getElementById('modalTransacaoLabel'); if (label) label.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
       }
 
-      const dados = {
-        descricao: document.getElementById('modalDescricao').value,
-        valor: document.getElementById('modalValor').value,
-        data: document.getElementById('modalData').value,
-        tipo: document.querySelector('input[name="tipo"]:checked').value,
-        categoria_id: document.getElementById('modalCategoria').value
-      };
+      var btnDash = document.getElementById('btnAbrirModalDash'); if (btnDash) btnDash.addEventListener('click', abrirModalNova);
 
-      try {
-        const response = await fetch('/transacoes/api/criar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dados)
-        });
+      var modalRec = document.getElementById('modalRecorrente'); var modalFreq = document.getElementById('modalFrequenciaContainer');
+      if (modalRec && modalFreq) modalRec.addEventListener('change', function() { modalFreq.style.display = this.checked ? '' : 'none'; });
 
-        if (response.ok) {
-          const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao'));
-          modal.hide();
-          window.location.reload();
-        } else {
-          const erro = await response.json();
-          alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao guardar transação');
-      }
-    }
+      var btnGuardar = document.getElementById('btnGuardar'); if (btnGuardar) btnGuardar.addEventListener('click', async function() {
+        const form = document.getElementById('formTransacao'); if (!form.checkValidity()) { form.reportValidity(); return; }
+        const recorrente = document.getElementById('modalRecorrente').checked;
+        const dados = { descricao: document.getElementById('modalDescricao').value, valor: document.getElementById('modalValor').value, data: document.getElementById('modalData').value, tipo: document.querySelector('input[name="tipo"]:checked').value, categoria_id: document.getElementById('modalCategoria').value, recorrente: recorrente ? '1' : '', frequencia: recorrente ? document.getElementById('modalFrequencia').value : '' };
+        try { const response = await fetch('/transacoes/api/criar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) }); if (response.ok) { const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao')); modal.hide(); window.location.reload(); } else { const erro = await response.json(); alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido')); } } catch (error) { console.error('Erro:', error); alert('Erro ao guardar transação'); }
+      });
+    });
 
   if despesasPorCategoria.length > 0
     script.

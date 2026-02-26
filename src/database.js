@@ -104,6 +104,33 @@ async function setupDatabase() {
       console.log('✅ Colunas de recuperação de senha adicionadas');
     }
 
+    // Criar tabela de orçamentos/metas mensais
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS orcamentos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        utilizador_id INT NOT NULL,
+        categoria_id INT NOT NULL,
+        limite DECIMAL(10, 2) NOT NULL,
+        mes INT NOT NULL,
+        ano INT NOT NULL,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE CASCADE,
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_orcamento (utilizador_id, categoria_id, mes, ano)
+      )
+    `);
+
+    // Adicionar colunas de recorrência às transações
+    if (!await columnExists(connection, 'transacoes', 'recorrente')) {
+      await connection.query(`
+        ALTER TABLE transacoes 
+        ADD COLUMN recorrente TINYINT(1) DEFAULT 0,
+        ADD COLUMN frequencia ENUM('semanal', 'mensal', 'anual') DEFAULT NULL,
+        ADD COLUMN ultima_geracao DATE DEFAULT NULL
+      `);
+      console.log('✅ Colunas de recorrência adicionadas à tabela transacoes');
+    }
+
     // Criar índices para melhor performance
     try {
       await connection.query('CREATE INDEX idx_transacoes_utilizador ON transacoes(utilizador_id)');

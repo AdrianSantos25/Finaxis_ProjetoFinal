@@ -2,22 +2,49 @@ extends ../layout
 
 block content
   //- Cabeçalho com título e seletor de ano
-  .card.mb-4.border-0.shadow-sm
-    .card-body.py-3
-      .d-flex.justify-content-between.align-items-center.flex-wrap.gap-3
-        .d-flex.align-items-center
-          .bg-primary.text-white.summary-icon-circle.me-3
-            i.bi.bi-graph-up
-          div
-            h1.h3.mb-0 Relatórios Anuais
-            p.text-muted.mb-0 Análise financeira de #{ano}
-        .d-flex.align-items-center.gap-2
-          a.btn.btn-outline-success(href=`/relatorios/exportar/csv?ano=${ano}` title="Exportar CSV")
-            i.bi.bi-file-earmark-spreadsheet.me-1
-            | Exportar CSV
-          .btn-group
-            each anoOpcao in anosDisponiveis
-              a.btn(href=`/relatorios?ano=${anoOpcao}` class=ano === anoOpcao ? 'btn-primary' : 'btn-outline-primary') #{anoOpcao}
+  .d-flex.justify-content-between.align-items-center.flex-wrap.gap-3.mb-4
+    .d-flex.align-items-center
+      .bg-primary.text-white.summary-icon-circle.me-3
+        i.bi.bi-graph-up
+      div
+        h1.h3.mb-0 Relatórios Anuais
+        p.text-muted.mb-0 Análise financeira de #{ano}
+    .d-flex.align-items-center.gap-2
+      .dropdown
+        button.btn.btn-outline-success.dropdown-toggle(type="button" data-bs-toggle="dropdown" aria-expanded="false")
+          i.bi.bi-download.me-1
+          | Exportar
+        ul.dropdown-menu.dropdown-menu-end
+          li
+            a.dropdown-item(href=`/relatorios/exportar/csv?ano=${ano}`)
+              i.bi.bi-file-earmark-spreadsheet.me-2
+              | CSV
+          li
+            a.dropdown-item(href=`/relatorios/exportar/excel?ano=${ano}`)
+              i.bi.bi-file-earmark-excel.me-2
+              | Excel (.xlsx)
+          li
+            a.dropdown-item(href=`/relatorios/exportar/pdf?ano=${ano}`)
+              i.bi.bi-file-earmark-pdf.me-2
+              | PDF
+      button.btn.btn-outline-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalImportar")
+        i.bi.bi-upload.me-1
+        | Importar
+      .btn-group
+        each anoOpcao in anosDisponiveis
+          a.btn(href=`/relatorios?ano=${anoOpcao}` class=ano === anoOpcao ? 'btn-primary' : 'btn-outline-primary') #{anoOpcao}
+
+  //- Alertas de sessão
+  if sucesso
+    .alert.alert-success.alert-dismissible.fade.show.mb-4
+      i.bi.bi-check-circle.me-2
+      | #{sucesso}
+      button.btn-close(type="button" data-bs-dismiss="alert")
+  if erro
+    .alert.alert-danger.alert-dismissible.fade.show.mb-4
+      i.bi.bi-exclamation-circle.me-2
+      | #{erro}
+      button.btn-close(type="button" data-bs-dismiss="alert")
 
   //- Cards de resumo anual
   .row.g-3.mb-4
@@ -54,7 +81,7 @@ block content
               p.text-muted.mb-1.small Saldo Anual
               h3.mb-0(class=saldoAno >= 0 ? 'text-primary' : 'text-warning') #{saldoAno.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
 
-  //- Gráfico de evolução (largura total)
+  //- Gráfico de evolução anual (largura total)
   .card.mb-4.border-0.shadow-sm
     .card-header.bg-white.border-0.pt-3.pb-0
       .d-flex.justify-content-between.align-items-center
@@ -64,6 +91,89 @@ block content
         span.badge.bg-light.text-dark #{ano}
     .card-body.py-2
       canvas#chartMensal(height="140")
+
+  //- Seletor de mês para gráficos avançados
+  .d-flex.justify-content-between.align-items-center.mb-3
+    h5.mb-0
+      i.bi.bi-graph-up-arrow.me-2.text-primary
+      | Análise Mensal Detalhada
+    .btn-group.btn-group-sm
+      a.btn(href=`/relatorios?ano=${ano}&mes=${mesAtual - 1 < 1 ? 12 : mesAtual - 1}` class='btn-outline-primary')
+        i.bi.bi-chevron-left
+      button.btn.btn-primary.dropdown-toggle(type="button" data-bs-toggle="dropdown")
+        | #{nomeMes} #{ano}
+      ul.dropdown-menu.dropdown-menu-end
+        each mesNome, index in meses
+          li
+            a.dropdown-item(href=`/relatorios?ano=${ano}&mes=${index + 1}`) #{mesNome}
+      a.btn(href=`/relatorios?ano=${ano}&mes=${mesAtual + 1 > 12 ? 1 : mesAtual + 1}` class='btn-outline-primary')
+        i.bi.bi-chevron-right
+
+  //- Gráfico: Evolução do saldo ao longo do mês (line chart)
+  .row.g-4.mb-4
+    .col-lg-8
+      .card.border-0.shadow-sm.h-100
+        .card-header.bg-white.border-0.pt-3.pb-0
+          h6.mb-0
+            i.bi.bi-activity.me-2.text-info
+            | Evolução do Saldo — #{nomeMes} #{ano}
+        .card-body
+          canvas#chartEvolucao(height="200")
+
+    //- Comparação mês atual vs mês anterior
+    .col-lg-4
+      .card.border-0.shadow-sm.h-100
+        .card-header.bg-white.border-0.pt-3.pb-0
+          h6.mb-0
+            i.bi.bi-arrow-left-right.me-2.text-warning
+            | vs Mês Anterior
+        .card-body
+          //- Variações
+          .mb-3
+            .d-flex.justify-content-between.align-items-center.mb-1
+              span.small.text-muted Receitas
+              if comparacao.variacaoReceitas > 0
+                span.badge.bg-success.bg-opacity-10.text-success
+                  i.bi.bi-arrow-up.me-1
+                  | +#{comparacao.variacaoReceitas}%
+              else if comparacao.variacaoReceitas < 0
+                span.badge.bg-danger.bg-opacity-10.text-danger
+                  i.bi.bi-arrow-down.me-1
+                  | #{comparacao.variacaoReceitas}%
+              else
+                span.badge.bg-secondary.bg-opacity-10.text-secondary 0%
+            .d-flex.gap-2.small
+              span.text-success #{comparacao.mesAtual.receitas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+              span.text-muted vs
+              span.text-muted #{comparacao.mesAnterior.receitas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+          hr
+          .mb-3
+            .d-flex.justify-content-between.align-items-center.mb-1
+              span.small.text-muted Despesas
+              if comparacao.variacaoDespesas > 0
+                span.badge.bg-danger.bg-opacity-10.text-danger
+                  i.bi.bi-arrow-up.me-1
+                  | +#{comparacao.variacaoDespesas}%
+              else if comparacao.variacaoDespesas < 0
+                span.badge.bg-success.bg-opacity-10.text-success
+                  i.bi.bi-arrow-down.me-1
+                  | #{comparacao.variacaoDespesas}%
+              else
+                span.badge.bg-secondary.bg-opacity-10.text-secondary 0%
+            .d-flex.gap-2.small
+              span.text-danger #{comparacao.mesAtual.despesas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+              span.text-muted vs
+              span.text-muted #{comparacao.mesAnterior.despesas.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+          hr
+          .mb-2
+            .d-flex.justify-content-between.align-items-center.mb-1
+              span.small.text-muted Saldo
+            .d-flex.gap-2.small
+              span.fw-bold(class=comparacao.mesAtual.saldo >= 0 ? 'text-primary' : 'text-warning') #{comparacao.mesAtual.saldo.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+              span.text-muted vs
+              span.text-muted #{comparacao.mesAnterior.saldo.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+          hr
+          canvas#chartComparacao(height="160")
 
   //- Linha com Top Despesas e Tabela Resumo lado a lado
   .row.g-4
@@ -171,8 +281,48 @@ block content
                       span.badge.bg-secondary
                         i.bi.bi-dash-lg
 
+  //- Modal Importar
+  .modal.fade#modalImportar(tabindex="-1" aria-labelledby="modalImportarLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalImportarLabel
+            i.bi.bi-upload.me-2
+            | Importar Transações
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formImportar(method="POST" action="/relatorios/importar" enctype="multipart/form-data")
+            .mb-3
+              label.form-label Selecione um ficheiro CSV ou Excel
+              input.form-control(type="file" name="ficheiro" accept=".csv,.xls,.xlsx" required)
+            .alert.alert-info.small
+              i.bi.bi-info-circle.me-1
+              | O ficheiro deve conter as colunas: 
+              strong Data
+              | , 
+              strong Descrição
+              | , 
+              strong Tipo
+              |  (receita/despesa), 
+              strong Categoria
+              |  (opcional), 
+              strong Valor
+              | . 
+              br
+              | Separador aceite: ponto e vírgula (;) ou vírgula (,).
+              br
+              | Formatos aceites: CSV, XLS, XLSX (máx. 5MB).
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary(type="submit" form="formImportar")
+            i.bi.bi-upload.me-1
+            | Importar
+
 block scripts
   script.
+    // Gráfico 1: Evolução Mensal Anual (barras)
     const ctx = document.getElementById('chartMensal').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
@@ -215,6 +365,131 @@ block scripts
               }
             }
           }
+        }
+      }
+    });
+
+    // Gráfico 2: Evolução do saldo ao longo do mês (line chart)
+    const evolucaoData = !{JSON.stringify(evolucao)};
+    const ctxEvolucao = document.getElementById('chartEvolucao').getContext('2d');
+    new Chart(ctxEvolucao, {
+      type: 'line',
+      data: {
+        labels: evolucaoData.map(d => d.dia),
+        datasets: [
+          {
+            label: 'Saldo Acumulado',
+            data: evolucaoData.map(d => d.saldoAcumulado),
+            borderColor: 'rgb(37, 99, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            borderWidth: 2
+          },
+          {
+            label: 'Receitas do dia',
+            data: evolucaoData.map(d => d.receitas),
+            borderColor: 'rgba(40, 167, 69, 0.8)',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 1,
+            pointHoverRadius: 4,
+            borderWidth: 1.5,
+            borderDash: [4, 4]
+          },
+          {
+            label: 'Despesas do dia',
+            data: evolucaoData.map(d => d.despesas),
+            borderColor: 'rgba(220, 53, 69, 0.8)',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 1,
+            pointHoverRadius: 4,
+            borderWidth: 1.5,
+            borderDash: [4, 4]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { title: { display: true, text: 'Dia do mês' } },
+          y: {
+            title: { display: true, text: 'Valor (€)' },
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+              }
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: function(items) { return 'Dia ' + items[0].label; },
+              label: function(context) {
+                return context.dataset.label + ': ' + context.raw.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+              }
+            }
+          },
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+
+    // Gráfico 3: Comparação com mês anterior (barras lado a lado)
+    const comp = !{JSON.stringify(comparacao)};
+    const ctxComp = document.getElementById('chartComparacao').getContext('2d');
+    const mesesNomes = !{JSON.stringify(meses)};
+    const nomeAnterior = mesesNomes[comp.mesAnteriorNum - 1];
+    const nomeAtual = '#{nomeMes}';
+    new Chart(ctxComp, {
+      type: 'bar',
+      data: {
+        labels: ['Receitas', 'Despesas'],
+        datasets: [
+          {
+            label: nomeAnterior,
+            data: [comp.mesAnterior.receitas, comp.mesAnterior.despesas],
+            backgroundColor: ['rgba(40, 167, 69, 0.3)', 'rgba(220, 53, 69, 0.3)'],
+            borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
+            borderWidth: 1
+          },
+          {
+            label: nomeAtual,
+            data: [comp.mesAtual.receitas, comp.mesAtual.despesas],
+            backgroundColor: ['rgba(40, 167, 69, 0.7)', 'rgba(220, 53, 69, 0.7)'],
+            borderColor: ['rgb(40, 167, 69)', 'rgb(220, 53, 69)'],
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '€' + value.toLocaleString('pt-PT');
+              }
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.raw.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+              }
+            }
+          },
+          legend: { position: 'bottom' }
         }
       }
     });

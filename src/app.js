@@ -66,11 +66,13 @@ const dashboardRoutes = require('./routes/dashboard');
 const transacoesRoutes = require('./routes/transacoes');
 const categoriasRoutes = require('./routes/categorias');
 const relatoriosRoutes = require('./routes/relatorios');
+const orcamentosRoutes = require('./routes/orcamentos');
 
 app.use('/dashboard', verificarAutenticacao, dashboardRoutes);
 app.use('/transacoes', verificarAutenticacao, transacoesRoutes);
 app.use('/categorias', verificarAutenticacao, categoriasRoutes);
 app.use('/relatorios', verificarAutenticacao, relatoriosRoutes);
+app.use('/orcamentos', verificarAutenticacao, orcamentosRoutes);
 
 // Middleware de erro 404
 app.use((req, res) => {

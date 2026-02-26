@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const dashboardService = require('../services/dashboardService');
+const orcamentosService = require('../services/orcamentosService');
+const transacoesService = require('../services/transacoesService');
 
 router.get('/', async (req, res, next) => {
   try {
@@ -11,8 +13,14 @@ router.get('/', async (req, res, next) => {
     const mes = parseInt(req.query.mes) || (hoje.getMonth() + 1);
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
     
-    // Obter dados do dashboard (queries executadas em paralelo)
-    const dados = await dashboardService.obterDados(utilizadorId, mes, ano);
+    // Obter dados do dashboard e orçamentos em paralelo
+    const [dados, orcamentosDados] = await Promise.all([
+      dashboardService.obterDados(utilizadorId, mes, ano),
+      orcamentosService.obterResumoDashboard(utilizadorId, mes, ano)
+    ]);
+
+    // Processar transações recorrentes
+    await transacoesService.processarRecorrentes(utilizadorId);
     
     // Meses para navegação
     const meses = [
@@ -23,6 +31,8 @@ router.get('/', async (req, res, next) => {
     res.render('dashboard', {
       titulo: 'Dashboard',
       ...dados,
+      orcamentos: orcamentosDados.orcamentos,
+      alertasOrcamento: orcamentosDados.alertas,
       mesAtual: mes,
       anoAtual: ano,
       meses,

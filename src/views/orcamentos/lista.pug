@@ -1,0 +1,203 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4.flex-wrap.gap-2
+    h1.h3.mb-0
+      i.bi.bi-bullseye.me-2
+      | Orçamentos
+    .d-flex.align-items-center.gap-2
+      //- Navegação de mês
+      .btn-group
+        a.btn.btn-outline-primary(href=`/orcamentos?mes=${mesAtual - 1 < 1 ? 12 : mesAtual - 1}&ano=${mesAtual - 1 < 1 ? anoAtual - 1 : anoAtual}`)
+          i.bi.bi-chevron-left
+        button.btn.btn-outline-primary.dropdown-toggle(type="button" data-bs-toggle="dropdown")
+          | #{nomeMes} #{anoAtual}
+        ul.dropdown-menu
+          each mes, index in meses
+            li
+              a.dropdown-item(href=`/orcamentos?mes=${index + 1}&ano=${anoAtual}`) #{mes}
+        a.btn.btn-outline-primary(href=`/orcamentos?mes=${mesAtual + 1 > 12 ? 1 : mesAtual + 1}&ano=${mesAtual + 1 > 12 ? anoAtual + 1 : anoAtual}`)
+          i.bi.bi-chevron-right
+      button.btn.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalOrcamento")
+        i.bi.bi-plus.me-1
+        | Novo Orçamento
+
+  //- Alertas de sessão
+  if sucesso
+    .alert.alert-success.alert-dismissible.fade.show
+      i.bi.bi-check-circle.me-2
+      | #{sucesso}
+      button.btn-close(type="button" data-bs-dismiss="alert")
+  if erro
+    .alert.alert-danger.alert-dismissible.fade.show
+      i.bi.bi-exclamation-circle.me-2
+      | #{erro}
+      button.btn-close(type="button" data-bs-dismiss="alert")
+
+  //- Resumo
+  if orcamentos.length > 0
+    .row.g-3.mb-4
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h6.text-muted Limite Total
+            h4.text-primary.mb-0 #{totalLimite.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h6.text-muted Total Gasto
+            h4.mb-0(class=totalGasto > totalLimite ? 'text-danger' : 'text-success') #{totalGasto.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h6.text-muted Restante
+            - const restanteTotal = totalLimite - totalGasto
+            h4.mb-0(class=restanteTotal >= 0 ? 'text-success' : 'text-danger') #{restanteTotal.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+
+  //- Lista de orçamentos
+  .card.border-0.shadow-sm
+    .card-body
+      if orcamentos.length === 0
+        .text-center.text-muted.py-5
+          i.bi.bi-bullseye(style="font-size: 4rem;")
+          p.mt-3.mb-2 Nenhum orçamento definido para #{nomeMes} #{anoAtual}
+          button.btn.btn-primary.mt-2(type="button" data-bs-toggle="modal" data-bs-target="#modalOrcamento")
+            i.bi.bi-plus.me-1
+            | Definir Orçamento
+          .mt-3
+            form.d-inline(method="POST" action="/orcamentos/copiar-mes")
+              input(type="hidden" name="mesDestino" value=mesAtual)
+              input(type="hidden" name="anoDestino" value=anoAtual)
+              input(type="hidden" name="mesOrigem" value=(mesAtual - 1 < 1 ? 12 : mesAtual - 1))
+              input(type="hidden" name="anoOrigem" value=(mesAtual - 1 < 1 ? anoAtual - 1 : anoAtual))
+              button.btn.btn-outline-secondary.btn-sm(type="submit")
+                i.bi.bi-clipboard.me-1
+                | Copiar do mês anterior
+      else
+        each orc in orcamentos
+          .mb-4.p-3.border.rounded
+            .d-flex.justify-content-between.align-items-center.mb-2
+              .d-flex.align-items-center
+                span.badge.me-2(style=`background-color: ${orc.categoria_cor}`) #{orc.categoria_nome}
+                if orc.estado === 'ultrapassado'
+                  span.badge.bg-danger
+                    i.bi.bi-exclamation-triangle.me-1
+                    | Ultrapassado!
+                else if orc.estado === 'alerta'
+                  span.badge.bg-warning.text-dark
+                    i.bi.bi-exclamation-circle.me-1
+                    | Atenção
+              .d-flex.align-items-center.gap-2
+                span.text-muted.small
+                  | #{orc.gasto_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / #{orc.limite.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                button.btn.btn-sm.btn-outline-primary.btnEditarOrcamento(type="button" data-edit-id="#{orc.id}" data-edit-limite="#{orc.limite}" title="Editar")
+                  i.bi.bi-pencil
+                form.d-inline.confirm-delete(method="POST" action=`/orcamentos/${orc.id}/eliminar?mes=${mesAtual}&ano=${anoAtual}` data-confirm-message="Eliminar este orçamento?")
+                  button.btn.btn-sm.btn-outline-danger(type="submit" title="Eliminar")
+                    i.bi.bi-trash
+            .progress(style="height: 20px;")
+              - const barClass = orc.estado === 'ultrapassado' ? 'bg-danger' : (orc.estado === 'alerta' ? 'bg-warning' : 'bg-success')
+              .progress-bar(class=barClass role="progressbar" style=`width: ${orc.percentagem}%` aria-valuenow=orc.percentagemReal aria-valuemin="0" aria-valuemax="100")
+                | #{orc.percentagemReal}%
+            .d-flex.justify-content-between.mt-1
+              small.text-muted Gasto: #{orc.gasto_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+              small(class=orc.restante >= 0 ? 'text-success' : 'text-danger')
+                | Restante: #{orc.restante.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+
+        .mt-3.text-center
+          form.d-inline(method="POST" action="/orcamentos/copiar-mes")
+            input(type="hidden" name="mesDestino" value=(mesAtual + 1 > 12 ? 1 : mesAtual + 1))
+            input(type="hidden" name="anoDestino" value=(mesAtual + 1 > 12 ? anoAtual + 1 : anoAtual))
+            input(type="hidden" name="mesOrigem" value=mesAtual)
+            input(type="hidden" name="anoOrigem" value=anoAtual)
+            button.btn.btn-outline-secondary.btn-sm(type="submit")
+              i.bi.bi-clipboard.me-1
+              | Copiar para o próximo mês
+
+  //- Modal Novo Orçamento
+  .modal.fade#modalOrcamento(tabindex="-1" aria-labelledby="modalOrcamentoLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalOrcamentoLabel
+            i.bi.bi-bullseye.me-2
+            | Novo Orçamento
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formOrcamento
+            .mb-3
+              label.form-label Categoria de Despesa *
+              select.form-select#orcCategoria(required)
+                option(value="") Selecione uma categoria
+                each cat in categoriasDespesa
+                  option(value=cat.id) #{cat.nome}
+            .mb-3
+              label.form-label Limite Mensal (€) *
+              .input-group
+                span.input-group-text €
+                input.form-control#orcLimite(type="number" step="0.01" min="0.01" required placeholder="0,00")
+            .mb-3
+              label.form-label.text-muted
+                | Período: #{nomeMes} #{anoAtual}
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary#btnGuardarOrc(type="button")
+            i.bi.bi-check.me-1
+            | Guardar
+
+  //- Modal Editar Orçamento
+  .modal.fade#modalEditarOrcamento(tabindex="-1" aria-labelledby="modalEditarOrcamentoLabel" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+      .modal-content
+        .modal-header
+          h5.modal-title#modalEditarOrcamentoLabel
+            i.bi.bi-pencil.me-2
+            | Editar Orçamento
+          button.btn-close(type="button" data-bs-dismiss="modal" aria-label="Fechar")
+        .modal-body
+          form#formEditarOrcamento
+            input#editOrcId(type="hidden")
+            .mb-3
+              label.form-label Novo Limite (€) *
+              .input-group
+                span.input-group-text €
+                input.form-control#editOrcLimite(type="number" step="0.01" min="0.01" required placeholder="0,00")
+        .modal-footer
+          button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
+            i.bi.bi-x.me-1
+            | Cancelar
+          button.btn.btn-primary#btnAtualizarOrc(type="button")
+            i.bi.bi-check.me-1
+            | Atualizar
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('btnGuardarOrc')?.addEventListener('click', async function() {
+        const categoria_id = document.getElementById('orcCategoria').value;
+        const limite = document.getElementById('orcLimite').value;
+        if (!categoria_id || !limite) { alert('Preencha todos os campos.'); return; }
+        try {
+          const response = await fetch('/orcamentos/api/criar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoria_id, limite, mes: #{mesAtual}, ano: #{anoAtual} }) });
+          const data = await response.json(); if (response.ok) { window.location.reload(); } else { alert(data.message || 'Erro ao criar orçamento.'); }
+        } catch (err) { alert('Erro ao criar orçamento.'); }
+      });
+
+      document.querySelectorAll('.btnEditarOrcamento').forEach(function(b) {
+        b.addEventListener('click', function() {
+          var id = this.dataset.editId; var limite = this.dataset.editLimite;
+          document.getElementById('editOrcId').value = id; document.getElementById('editOrcLimite').value = limite;
+          new bootstrap.Modal(document.getElementById('modalEditarOrcamento')).show();
+        });
+      });
+
+      document.getElementById('btnAtualizarOrc')?.addEventListener('click', async function() {
+        const id = document.getElementById('editOrcId').value; const limite = document.getElementById('editOrcLimite').value;
+        if (!limite || parseFloat(limite) <= 0) { alert('O limite deve ser um valor positivo.'); return; }
+        try { const response = await fetch(`/orcamentos/api/${id}/atualizar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limite }) }); const data = await response.json(); if (response.ok) { window.location.reload(); } else { alert(data.message || 'Erro ao atualizar.'); } } catch (err) { alert('Erro ao atualizar orçamento.'); }
+      });
+
+      document.querySelectorAll('form.confirm-delete').forEach(function(f) { f.addEventListener('submit', function(e) { var msg = f.dataset.confirmMessage || 'Tem a certeza?'; if (!confirm(msg)) e.preventDefault(); }); });
+    });

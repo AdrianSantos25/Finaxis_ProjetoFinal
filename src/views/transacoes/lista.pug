@@ -5,27 +5,39 @@ block content
     h1.h3.mb-0
       i.bi.bi-list-ul.me-2
       | Transações
-    button.btn.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()")
+    button.btn.btn-primary#btnAbrirModalTransacao(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao")
       i.bi.bi-plus.me-1
       | Nova Transação
 
   .card.mb-4
     .card-body
       form.row.g-3(method="GET" action="/transacoes")
-        .col-md-4
+        .col-md-12
+          label.form-label Pesquisar
+          .input-group
+            span.input-group-text
+              i.bi.bi-search
+            input.form-control(type="text" name="pesquisa" placeholder="Pesquisar por descrição..." value=filtroPesquisa)
+        .col-md-3
           label.form-label Tipo
           select.form-select(name="tipo")
             option(value="") Todos
             option(value="receita" selected=(filtroTipo === 'receita')) Receitas
             option(value="despesa" selected=(filtroTipo === 'despesa')) Despesas
-        .col-md-4
+        .col-md-3
           label.form-label Categoria
           select.form-select(name="categoria")
             option(value="") Todas
             each cat in categorias
               option(value=cat.id selected=(filtroCategoria == cat.id)) #{cat.nome} (#{cat.tipo})
-        .col-md-4.d-flex.align-items-end
-          button.btn.btn-outline-primary.me-2(type="submit")
+        .col-md-3
+          label.form-label Data Início
+          input.form-control(type="date" name="dataInicio" value=filtroDataInicio)
+        .col-md-3
+          label.form-label Data Fim
+          input.form-control(type="date" name="dataFim" value=filtroDataFim)
+        .col-md-12.d-flex.align-items-end.gap-2
+          button.btn.btn-outline-primary(type="submit")
             i.bi.bi-funnel.me-1
             | Filtrar
           a.btn.btn-outline-secondary(href="/transacoes")
@@ -38,7 +50,7 @@ block content
         .text-center.text-muted.py-5
           i.bi.bi-inbox(style="font-size: 4rem;")
           p.mt-3.mb-0 Nenhuma transação encontrada
-          button.btn.btn-primary.mt-3(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao" onclick="abrirModalNova()") Adicionar primeira transação
+          button.btn.btn-primary.mt-3#btnAbrirModalTransacaoEmpty(type="button" data-bs-toggle="modal" data-bs-target="#modalTransacao") Adicionar primeira transação
       else
         .table-responsive
           table.table.table-hover
@@ -53,7 +65,12 @@ block content
               each transacao in transacoes
                 tr
                   td #{new Date(transacao.data).toLocaleDateString('pt-PT')}
-                  td #{transacao.descricao}
+                  td
+                    | #{transacao.descricao}
+                    if transacao.recorrente
+                      |  
+                      span.badge.bg-info.bg-opacity-75.ms-1(title=`Recorrente: ${transacao.frequencia}`)
+                        i.bi.bi-arrow-repeat
                   td
                     if transacao.categoria_nome
                       span.badge(style=`background-color: ${transacao.categoria_cor}`) #{transacao.categoria_nome}
@@ -69,35 +86,36 @@ block content
                   td.text-end
                     a.btn.btn-sm.btn-outline-primary.me-1(href=`/transacoes/${transacao.id}/editar` title="Editar")
                       i.bi.bi-pencil
-                    form.d-inline(method="POST" action=`/transacoes/${transacao.id}/eliminar` onsubmit="return confirm('Tem a certeza que pretende eliminar?')")
+                    form.d-inline.confirm-delete(method="POST" action=`/transacoes/${transacao.id}/eliminar` data-confirm-message="Tem a certeza que pretende eliminar?")
                       button.btn.btn-sm.btn-outline-danger(type="submit" title="Eliminar")
                         i.bi.bi-trash
 
         //- Paginação
         if paginacao && paginacao.totalPaginas > 1
+          - const filtroQuery = `&tipo=${filtroTipo}&categoria=${filtroCategoria}&pesquisa=${encodeURIComponent(filtroPesquisa || '')}&dataInicio=${filtroDataInicio || ''}&dataFim=${filtroDataFim || ''}`
           nav.mt-4(aria-label="Navegação de páginas")
             ul.pagination.justify-content-center.mb-0
               li.page-item(class=paginacao.pagina <= 1 ? 'disabled' : '')
-                a.page-link(href=`/transacoes?pagina=${paginacao.pagina - 1}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) &laquo; Anterior
+                a.page-link(href=`/transacoes?pagina=${paginacao.pagina - 1}${filtroQuery}`) &laquo; Anterior
               - const inicio = Math.max(1, paginacao.pagina - 2)
               - const fim = Math.min(paginacao.totalPaginas, paginacao.pagina + 2)
               if inicio > 1
                 li.page-item
-                  a.page-link(href=`/transacoes?pagina=1&tipo=${filtroTipo}&categoria=${filtroCategoria}`) 1
+                  a.page-link(href=`/transacoes?pagina=1${filtroQuery}`) 1
                 if inicio > 2
                   li.page-item.disabled
                     span.page-link ...
               - for (let p = inicio; p <= fim; p++)
                 li.page-item(class=p === paginacao.pagina ? 'active' : '')
-                  a.page-link(href=`/transacoes?pagina=${p}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) #{p}
+                  a.page-link(href=`/transacoes?pagina=${p}${filtroQuery}`) #{p}
               if fim < paginacao.totalPaginas
                 if fim < paginacao.totalPaginas - 1
                   li.page-item.disabled
                     span.page-link ...
                 li.page-item
-                  a.page-link(href=`/transacoes?pagina=${paginacao.totalPaginas}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) #{paginacao.totalPaginas}
+                  a.page-link(href=`/transacoes?pagina=${paginacao.totalPaginas}${filtroQuery}`) #{paginacao.totalPaginas}
               li.page-item(class=paginacao.pagina >= paginacao.totalPaginas ? 'disabled' : '')
-                a.page-link(href=`/transacoes?pagina=${paginacao.pagina + 1}&tipo=${filtroTipo}&categoria=${filtroCategoria}`) Seguinte &raquo;
+                a.page-link(href=`/transacoes?pagina=${paginacao.pagina + 1}${filtroQuery}`) Seguinte &raquo;
             .text-center.text-muted.small.mt-2
               | A mostrar #{((paginacao.pagina - 1) * paginacao.limite) + 1}-#{Math.min(paginacao.pagina * paginacao.limite, paginacao.total)} de #{paginacao.total} transações
 
@@ -148,65 +166,82 @@ block content
                 optgroup(label="Despesas" id="modalCategoriasDespesa")
                   each cat in categorias.filter(c => c.tipo === 'despesa')
                     option(value=cat.id) #{cat.nome}
+            .mb-3
+              .form-check.form-switch
+                input.form-check-input#modalRecorrente(type="checkbox")
+                label.form-check-label(for="modalRecorrente") Transação Recorrente
+              #modalFrequenciaContainer(style="display:none;")
+                .mt-2
+                  select.form-select#modalFrequencia
+                    option(value="mensal") Mensal
+                    option(value="semanal") Semanal
+                    option(value="anual") Anual
         .modal-footer
           button.btn.btn-outline-secondary(type="button" data-bs-dismiss="modal")
             i.bi.bi-x.me-1
             | Cancelar
-          button.btn.btn-primary#btnGuardar(type="button" onclick="guardarTransacao()")
+          button.btn.btn-primary#btnGuardar(type="button")
             i.bi.bi-check.me-1
             | Guardar
 
 block scripts
   script.
-    function abrirModalNova() {
-      // Limpar formulário
-      document.getElementById('formTransacao').reset();
-      // Definir data de hoje
-      const hoje = new Date().toISOString().split('T')[0];
-      document.getElementById('modalData').value = hoje;
-      // Selecionar receita por defeito
-      document.getElementById('modalTipoReceita').checked = true;
-      // Atualizar título
-      document.getElementById('modalTransacaoLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
-    }
-
-    async function guardarTransacao() {
-      const form = document.getElementById('formTransacao');
-      
-      // Validação básica
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
+    document.addEventListener('DOMContentLoaded', function() {
+      function abrirModalNova() {
+        document.getElementById('formTransacao').reset();
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('modalData').value = hoje;
+        document.getElementById('modalTipoReceita').checked = true;
+        document.getElementById('modalRecorrente').checked = false;
+        var freq = document.getElementById('modalFrequenciaContainer');
+        if (freq) freq.style.display = 'none';
+        document.getElementById('modalTransacaoLabel').innerHTML = '<i class="bi bi-plus-circle me-2"></i>Nova Transação';
       }
 
-      const dados = {
-        descricao: document.getElementById('modalDescricao').value,
-        valor: document.getElementById('modalValor').value,
-        data: document.getElementById('modalData').value,
-        tipo: document.querySelector('input[name="tipo"]:checked').value,
-        categoria_id: document.getElementById('modalCategoria').value
-      };
+      var btnsAbrir = document.querySelectorAll('#btnAbrirModalTransacao, #btnAbrirModalTransacaoEmpty');
+      btnsAbrir.forEach(function(btn) { btn.addEventListener('click', abrirModalNova); });
 
-      try {
-        const response = await fetch('/transacoes/api/criar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(dados)
+      var modalRec = document.getElementById('modalRecorrente');
+      var modalFreq = document.getElementById('modalFrequenciaContainer');
+      if (modalRec && modalFreq) {
+        modalRec.addEventListener('change', function() {
+          modalFreq.style.display = this.checked ? '' : 'none';
         });
-
-        if (response.ok) {
-          // Fechar modal e recarregar página
-          const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao'));
-          modal.hide();
-          window.location.reload();
-        } else {
-          const erro = await response.json();
-          alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao guardar transação');
       }
-    }
+
+      document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const form = document.getElementById('formTransacao');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const recorrente = document.getElementById('modalRecorrente').checked;
+        const dados = {
+          descricao: document.getElementById('modalDescricao').value,
+          valor: document.getElementById('modalValor').value,
+          data: document.getElementById('modalData').value,
+          tipo: document.querySelector('input[name="tipo"]:checked').value,
+          categoria_id: document.getElementById('modalCategoria').value,
+          recorrente: recorrente ? '1' : '',
+          frequencia: recorrente ? document.getElementById('modalFrequencia').value : ''
+        };
+
+        try {
+          const response = await fetch('/transacoes/api/criar', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados)
+          });
+          if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransacao'));
+            modal.hide(); window.location.reload();
+          } else {
+            const erro = await response.json(); alert('Erro ao guardar: ' + (erro.message || 'Erro desconhecido'));
+          }
+        } catch (error) { console.error('Erro:', error); alert('Erro ao guardar transação'); }
+      });
+
+      // Confirm delete forms
+      document.querySelectorAll('form.confirm-delete').forEach(function(f) {
+        f.addEventListener('submit', function(e) {
+          var msg = f.dataset.confirmMessage || 'Tem a certeza?';
+          if (!confirm(msg)) e.preventDefault();
+        });
+      });
+    });
