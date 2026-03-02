@@ -60,6 +60,7 @@ block content
                 th Descrição
                 th Categoria
                 th.text-end Valor
+                th.text-center Anexos
                 th.text-end Ações
             tbody
               each transacao in transacoes
@@ -71,6 +72,11 @@ block content
                       |  
                       span.badge.bg-info.bg-opacity-75.ms-1(title=`Recorrente: ${transacao.frequencia}`)
                         i.bi.bi-arrow-repeat
+                    if transacao.notas
+                      br
+                      small.text-muted
+                        i.bi.bi-chat-left-text.me-1
+                        | #{transacao.notas.substring(0, 50)}#{transacao.notas.length > 50 ? '...' : ''}
                   td
                     if transacao.categoria_nome
                       span.badge(style=`background-color: ${transacao.categoria_cor}`) #{transacao.categoria_nome}
@@ -83,6 +89,12 @@ block content
                       else
                         | -
                       | #{parseFloat(transacao.valor).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                  td.text-center
+                    if transacao.comprovativo
+                      a.btn.btn-sm.btn-outline-info(href=`/uploads/comprovativos/${transacao.comprovativo}` target="_blank" title="Ver comprovativo")
+                        i.bi.bi-paperclip
+                    else
+                      span.text-muted -
                   td.text-end
                     a.btn.btn-sm.btn-outline-primary.me-1(href=`/transacoes/${transacao.id}/editar` title="Editar")
                       i.bi.bi-pencil

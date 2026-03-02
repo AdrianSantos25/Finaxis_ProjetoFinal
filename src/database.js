@@ -131,6 +131,24 @@ async function setupDatabase() {
       console.log('✅ Colunas de recorrência adicionadas à tabela transacoes');
     }
 
+    // Adicionar coluna de notas às transações
+    if (!await columnExists(connection, 'transacoes', 'notas')) {
+      await connection.query(`
+        ALTER TABLE transacoes 
+        ADD COLUMN notas TEXT DEFAULT NULL
+      `);
+      console.log('✅ Coluna notas adicionada à tabela transacoes');
+    }
+
+    // Adicionar coluna de comprovativo às transações
+    if (!await columnExists(connection, 'transacoes', 'comprovativo')) {
+      await connection.query(`
+        ALTER TABLE transacoes 
+        ADD COLUMN comprovativo VARCHAR(255) DEFAULT NULL
+      `);
+      console.log('✅ Coluna comprovativo adicionada à tabela transacoes');
+    }
+
     // Criar índices para melhor performance
     try {
       await connection.query('CREATE INDEX idx_transacoes_utilizador ON transacoes(utilizador_id)');

@@ -1,0 +1,6 @@
+# Ignorar todos os arquivos de comprovativo
+*
+
+# Exceto este arquivo
+!.gitignore
+!README.md

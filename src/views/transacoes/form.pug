@@ -17,7 +17,7 @@ block content
               i.bi.bi-pencil.me-2
               | Editar Transação
         .card-body
-          form(method="POST" action=acao === 'criar' ? '/transacoes' : `/transacoes/${transacao.id}`)
+          form(method="POST" action=acao === 'criar' ? '/transacoes' : `/transacoes/${transacao.id}` enctype="multipart/form-data")
             .mb-3
               label.form-label Descrição *
               input.form-control(type="text" name="descricao" value=transacao.descricao required placeholder="Ex: Salário, Renda, Supermercado...")
@@ -66,6 +66,25 @@ block content
                     option(value="mensal" selected=(transacao.frequencia === 'mensal')) Mensal
                     option(value="semanal" selected=(transacao.frequencia === 'semanal')) Semanal
                     option(value="anual" selected=(transacao.frequencia === 'anual')) Anual
+
+            .mb-3
+              label.form-label Notas/Observações
+              textarea.form-control(name="notas" rows="3" placeholder="Adicione observações ou comentários sobre esta transação...") #{transacao.notas || ''}
+            
+            .mb-4
+              label.form-label Comprovativo (Imagem ou PDF)
+              if transacao.comprovativo
+                .alert.alert-info.d-flex.align-items-center.justify-content-between
+                  div
+                    i.bi.bi-paperclip.me-2
+                    span Comprovativo atual: 
+                    a(href=`/uploads/comprovativos/${transacao.comprovativo}` target="_blank") #{transacao.comprovativo}
+                  form.d-inline(method="POST" action=`/transacoes/${transacao.id}/remover-comprovativo` onsubmit="return confirm('Tem certeza que deseja remover o comprovativo?')")
+                    button.btn.btn-sm.btn-outline-danger(type="submit")
+                      i.bi.bi-trash.me-1
+                      | Remover
+              input.form-control(type="file" name="comprovativo" accept="image/jpeg,image/png,application/pdf")
+              small.form-text.text-muted Formatos aceites: JPEG, PNG, PDF (máx. 5MB)
             
             .d-flex.gap-2
               button.btn.btn-primary(type="submit")

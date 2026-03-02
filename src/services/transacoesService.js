@@ -88,10 +88,10 @@ class TransacoesService {
   /**
    * Criar nova transação
    */
-  async criar(utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia }) {
+  async criar(utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
     const [resultado] = await db.query(
-      'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, recorrente, frequencia, ultima_geracao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, utilizadorId, recorrente ? 1 : 0, recorrente ? frequencia : null, recorrente ? data : null]
+      'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, recorrente, frequencia, ultima_geracao, notas, comprovativo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, utilizadorId, recorrente ? 1 : 0, recorrente ? frequencia : null, recorrente ? data : null, notas || null, comprovativo || null]
     );
     return resultado;
   }
@@ -99,10 +99,10 @@ class TransacoesService {
   /**
    * Atualizar transação existente
    */
-  async atualizar(transacaoId, utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia }) {
+  async atualizar(transacaoId, utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
     const [resultado] = await db.query(
-      'UPDATE transacoes SET descricao = ?, valor = ?, tipo = ?, categoria_id = ?, data = ?, recorrente = ?, frequencia = ? WHERE id = ? AND utilizador_id = ?',
-      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, recorrente ? 1 : 0, recorrente ? frequencia : null, transacaoId, utilizadorId]
+      'UPDATE transacoes SET descricao = ?, valor = ?, tipo = ?, categoria_id = ?, data = ?, recorrente = ?, frequencia = ?, notas = ?, comprovativo = ? WHERE id = ? AND utilizador_id = ?',
+      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, recorrente ? 1 : 0, recorrente ? frequencia : null, notas || null, comprovativo || null, transacaoId, utilizadorId]
     );
     return resultado;
   }
