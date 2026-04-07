@@ -274,6 +274,45 @@ Configure os seguintes secrets no GitHub para ativar deploy automático:
 - `DEPLOY_SSH_KEY`
 - `DEPLOY_APP_PATH`
 
+## 🚀 Produção (Passo a Passo)
+
+### 1) Preparar variáveis
+
+1. Copie `.env.production.example` para `.env` no servidor.
+2. Gere um secret forte:
+
+```bash
+npm run generate:secret
+```
+
+3. Cole o valor em `SESSION_SECRET`.
+4. Preencha SMTP, Stripe e `APP_BASE_URL` com valores reais.
+
+### 2) Validar ambiente antes do deploy
+
+```bash
+npm run prod:check
+```
+
+Se algum campo obrigatório estiver em falta ou inválido, o comando falha e indica o que corrigir.
+
+### 3) Deploy automático no GitHub
+
+Configure os secrets no repositório:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_APP_PATH`
+
+### 4) Backup em produção
+
+```bash
+npm run backup:db
+```
+
+Se `mysqldump` não estiver no PATH, defina `MYSQLDUMP_PATH` no `.env`.
+
 ## 🎨 Interface
 
 O sistema possui uma interface moderna e responsiva com:

@@ -8,7 +8,9 @@
     "dev": "node --watch src/app.js",
     "backup:db": "powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1",
     "check": "node scripts/check-syntax.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "generate:secret": "node scripts/generate-session-secret.js 48",
+    "prod:check": "node scripts/validate-prod-env.js .env"
   },
   "keywords": [
     "financeiro",
