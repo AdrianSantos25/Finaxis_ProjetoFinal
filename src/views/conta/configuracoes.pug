@@ -4,127 +4,206 @@ block content
   - const contaNome = conta && conta.nome ? conta.nome : ''
   - const contaMoeda = conta && conta.moeda ? conta.moeda : 'EUR'
   - const contaTimezone = conta && conta.timezone ? conta.timezone : 'Europe/Lisbon'
-  .d-flex.justify-content-between.align-items-center.mb-4
-    h1.h3.mb-0
-      i.bi.bi-gear.me-2
-      | Configurações da Conta
-
-  if sucesso
-    .alert.alert-success.alert-dismissible.fade.show
-      | #{sucesso}
-      button.btn-close(type='button' data-bs-dismiss='alert')
-
-  if erro
-    .alert.alert-danger.alert-dismissible.fade.show
-      | #{erro}
-      button.btn-close(type='button' data-bs-dismiss='alert')
-
-  .row.g-4
-    .col-lg-6
-      .card.shadow-sm
-        .card-header
-          h5.mb-0 Dados da Conta
-        .card-body
-          form(method='POST' action='/conta/configuracoes')
-            .mb-3
-              label.form-label Nome da empresa/conta
-              input.form-control(type='text' name='nome' required value=contaNome)
-            .row
-              .col-md-6
-                .mb-3
-                  label.form-label Moeda
-                  select.form-select(name='moeda')
-                    option(value='EUR' selected=contaMoeda === 'EUR') EUR
-                    option(value='USD' selected=contaMoeda === 'USD') USD
-                    option(value='BRL' selected=contaMoeda === 'BRL') BRL
-              .col-md-6
-                .mb-3
-                  label.form-label Timezone
-                  select.form-select(name='timezone')
-                    option(value='Europe/Lisbon' selected=contaTimezone === 'Europe/Lisbon') Europe/Lisbon
-                    option(value='America/Sao_Paulo' selected=contaTimezone === 'America/Sao_Paulo') America/Sao_Paulo
-                    option(value='UTC' selected=contaTimezone === 'UTC') UTC
-            if isAdmin
-              button.btn.btn-primary(type='submit') Guardar Configurações
-            else
-              .alert.alert-warning.small Só administradores podem editar configurações.
-
-    .col-lg-6
-      .card.shadow-sm
-        .card-header
-          h5.mb-0 Equipa
-        .card-body
-          if membros && membros.length > 0
-            ul.list-group.list-group-flush
-              each m in membros
-                li.list-group-item.d-flex.justify-content-between.align-items-center
-                  div
-                    strong #{m.nome}
-                    div.small.text-muted #{m.email}
-                  span.badge(class=m.papel === 'admin' ? 'bg-primary' : 'bg-secondary') #{m.papel}
-          else
-            p.text-muted.mb-0 Sem membros.
-
+  - const statusConviteTexto = { pendente: 'Pendente', aceite: 'Aceite', cancelado: 'Cancelado', expirado: 'Expirado' }
+  - const statusConviteClasse = { pendente: 'text-bg-warning', aceite: 'text-bg-success', cancelado: 'text-bg-secondary', expirado: 'text-bg-dark' }
+  - const acaoAuditoriaTexto = { criar: 'Criado', editar: 'Editado', eliminar: 'Eliminado', aceitar: 'Convite aceite', cancelar: 'Convite cancelado', alterar_papel: 'Permissão alterada', remover: 'Membro removido', atualizar_configuracoes: 'Configurações atualizadas', registo: 'Novo registo', aceite_convite: 'Entrada por convite' }
+  - const recursoAuditoriaTexto = { transacoes: 'Transações', categorias: 'Categorias', orcamentos: 'Orçamentos', convites: 'Convites', membros: 'Membros', conta: 'Conta', utilizadores: 'Utilizadores' }
+  .conta-page
+    .conta-hero.mb-4
+      .d-flex.flex-column.flex-lg-row.justify-content-between.align-items-start.align-items-lg-center.gap-3
+        .d-flex.align-items-center.gap-3
+          span.conta-hero-icon
+            i.bi.bi-shield-check
+          div
+            h1.h3.mb-1 Central da Conta e Equipa
+            p.text-muted.mb-0 Defina preferências, organize acessos e mantenha tudo claro para a sua equipa.
+        .d-flex.align-items-center.gap-2.flex-wrap
+          span.badge.text-bg-light.border Membros ativos: #{totalMembros}
+          span.badge.text-bg-light.border Administradores: #{totalAdmins}
           if isAdmin
-            hr
-            h6 Convidar membro
-            form(method='POST' action='/conta/convites')
-              .mb-2
-                input.form-control(type='email' name='email' placeholder='email@empresa.com' required)
-              .mb-2
-                select.form-select(name='papel')
-                  option(value='membro') Membro
-                  option(value='admin') Admin
+            span.badge.text-bg-primary Perfil com acesso administrativo
+          else
+            span.badge.text-bg-secondary Perfil com acesso operacional
+
+    if sucesso
+      .alert.alert-success.alert-dismissible.fade.show
+        i.bi.bi-check-circle.me-2
+        | #{sucesso}
+        button.btn-close(type='button' data-bs-dismiss='alert')
+
+    if erro
+      .alert.alert-danger.alert-dismissible.fade.show
+        i.bi.bi-exclamation-triangle.me-2
+        | #{erro}
+        button.btn-close(type='button' data-bs-dismiss='alert')
+
+    .row.g-4
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-white.border-0.pb-0
+            h5.mb-1 Preferências da Conta
+            p.text-muted.small.mb-0 Essas definições ajudam a padronizar toda a experiência para os membros.
+          .card-body
+            form(method='POST' action='/conta/configuracoes')
+              .mb-3
+                label.form-label Nome da organização
+                input.form-control(type='text' name='nome' required value=contaNome)
+              .row
+                .col-md-6
+                  .mb-3
+                    label.form-label Moeda
+                    select.form-select(name='moeda')
+                      option(value='EUR' selected=contaMoeda === 'EUR') EUR
+                      option(value='USD' selected=contaMoeda === 'USD') USD
+                      option(value='BRL' selected=contaMoeda === 'BRL') BRL
+                .col-md-6
+                  .mb-3
+                    label.form-label Timezone
+                    select.form-select(name='timezone')
+                      option(value='Europe/Lisbon' selected=contaTimezone === 'Europe/Lisbon') Europe/Lisbon
+                      option(value='America/Sao_Paulo' selected=contaTimezone === 'America/Sao_Paulo') America/Sao_Paulo
+                      option(value='UTC' selected=contaTimezone === 'UTC') UTC
+              if isAdmin
+                button.btn.btn-primary(type='submit') Guardar alterações
+              else
+                .alert.alert-warning.small.mb-0 Apenas administradores podem editar estas preferências.
+
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-white.border-0.pb-0
+            h5.mb-1 Como funcionam as permissões
+            p.text-muted.small.mb-0 Regras simples para qualquer pessoa entender quem pode fazer o quê.
+          .card-body
+            .permission-grid
+              .permission-item
+                .permission-badge.bg-primary-subtle.text-primary Admin
+                p.small.text-muted.mb-0
+                  | Acesso de gestão: convites, permissões, faturação e configurações da conta.
+              .permission-item
+                .permission-badge.bg-secondary-subtle.text-secondary Membro
+                p.small.text-muted.mb-0
+                  | Acesso de operação: usa o sistema no dia a dia, sem ações administrativas.
+            .alert.alert-light.border.small.mt-3.mb-0
+              i.bi.bi-info-circle.me-2
+              | Regra de segurança: a conta precisa manter pelo menos 1 administrador ativo.
+
+    .card.shadow-sm.border-0.mt-4
+      .card-header.bg-white.border-0.pb-0
+        h5.mb-1 Gestão de membros
+        p.text-muted.small.mb-0 Consulte a equipa, atualize papéis e remova acessos quando necessário.
+      .card-body
+        if membros && membros.length > 0
+          .table-responsive
+            table.table.align-middle
+              thead
+                tr
+                  th Membro
+                  th Email
+                  th Permissão atual
+                  th.text-end Gestão de acesso
+              tbody
+                each m in membros
+                  tr
+                    td
+                      .fw-semibold
+                        | #{m.nome}
+                        if m.id === utilizadorAtualId
+                          span.badge.text-bg-light.border.ms-2 Você
+                    td.text-muted #{m.email}
+                    td
+                      if m.papel === 'admin'
+                        span.badge.text-bg-primary Admin
+                      else
+                        span.badge.text-bg-secondary Membro
+                    td.text-end
+                      if isAdmin
+                        .d-flex.justify-content-end.align-items-center.gap-2.flex-wrap
+                          form.d-flex.align-items-center.gap-2(method='POST' action='/conta/membros/' + m.id + '/papel')
+                            select.form-select.form-select-sm(name='papel' style='min-width:120px')
+                              option(value='membro' selected=m.papel === 'membro') Membro
+                              option(value='admin' selected=m.papel === 'admin') Admin
+                            button.btn.btn-sm.btn-outline-primary(type='submit') Aplicar
+                          if m.id !== utilizadorAtualId
+                            form(method='POST' action='/conta/membros/' + m.id + '/remover' onsubmit='return confirm("Tem a certeza que quer remover o acesso deste membro?")')
+                              button.btn.btn-sm.btn-outline-danger(type='submit') Remover acesso
+                      else
+                        span.text-muted.small Sem permissão para gerir acessos
+        else
+          p.text-muted.mb-0 Ainda não existem membros nesta conta.
+
+        if isAdmin
+          hr.my-4
+          h6.mb-2 Convidar novo membro
+          p.small.text-muted.mb-3 O convite chega por email e expira automaticamente em 7 dias.
+          form.row.g-2(method='POST' action='/conta/convites')
+            .col-md-6
+              input.form-control(type='email' name='email' placeholder='nome@empresa.com' required)
+            .col-md-3
+              select.form-select(name='papel')
+                option(value='membro') Membro
+                option(value='admin') Admin
+            .col-md-3.d-grid
               button.btn.btn-outline-primary(type='submit') Enviar convite
 
-  .row.g-4.mt-1
-    .col-lg-6
-      .card.shadow-sm
-        .card-header
-          h5.mb-0 Convites
-        .card-body
-          if !convites || convites.length === 0
-            p.text-muted.mb-0 Sem convites.
-          else
-            .table-responsive
-              table.table.table-sm
-                thead
-                  tr
-                    th Email
-                    th Papel
-                    th Estado
-                    th
-                tbody
-                  each c in convites
+    .row.g-4.mt-1
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-white.border-0.pb-0
+            h5.mb-1 Estado dos convites
+            p.text-muted.small.mb-0 Acompanhe rapidamente quem já aceitou e o que ainda está pendente.
+          .card-body
+            if !convites || convites.length === 0
+              p.text-muted.mb-0 Nenhum convite enviado até ao momento.
+            else
+              .table-responsive
+                table.table.table-sm.align-middle
+                  thead
                     tr
-                      td #{c.email}
-                      td #{c.papel}
-                      td #{c.status}
-                      td
-                        if isAdmin && c.status === 'pendente'
-                          form(method='POST' action='/conta/convites/' + c.id + '/cancelar')
-                            button.btn.btn-sm.btn-outline-danger(type='submit') Cancelar
+                      th Email
+                      th Permissão
+                      th Estado do convite
+                      th.text-end Gestão
+                  tbody
+                    each c in convites
+                      - const cStatus = statusConviteTexto[c.status] || c.status
+                      - const cStatusClass = statusConviteClasse[c.status] || 'text-bg-secondary'
+                      tr
+                        td #{c.email}
+                        td
+                          if c.papel === 'admin'
+                            span.badge.text-bg-primary Admin
+                          else
+                            span.badge.text-bg-secondary Membro
+                        td
+                          span.badge(class=cStatusClass)= cStatus
+                        td.text-end
+                          if isAdmin && c.status === 'pendente'
+                            form(method='POST' action='/conta/convites/' + c.id + '/cancelar')
+                              button.btn.btn-sm.btn-outline-danger(type='submit') Cancelar
 
-    .col-lg-6
-      .card.shadow-sm
-        .card-header
-          h5.mb-0 Auditoria Recente
-        .card-body
-          if !auditoria || auditoria.length === 0
-            p.text-muted.mb-0 Sem logs de auditoria.
-          else
-            .table-responsive
-              table.table.table-sm
-                thead
-                  tr
-                    th Data
-                    th Ação
-                    th Recurso
-                    th Utilizador
-                tbody
-                  each a in auditoria
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-white.border-0.pb-0
+            h5.mb-1 Histórico de atividade
+            p.text-muted.small.mb-0 Transparência total do que foi alterado e por quem.
+          .card-body
+            if !auditoria || auditoria.length === 0
+              p.text-muted.mb-0 Ainda não existem registos de atividade.
+            else
+              .table-responsive
+                table.table.table-sm.align-middle
+                  thead
                     tr
-                      td #{new Date(a.criado_em).toLocaleString('pt-PT')}
-                      td #{a.acao}
-                      td #{a.recurso}
-                      td #{a.utilizador_nome || '-'}
+                      th Data
+                      th O que aconteceu
+                      th Área
+                      th Utilizador
+                  tbody
+                    each a in auditoria
+                      - const aAcao = acaoAuditoriaTexto[a.acao] || a.acao
+                      - const aRecurso = recursoAuditoriaTexto[a.recurso] || a.recurso
+                      tr
+                        td #{new Date(a.criado_em).toLocaleString('pt-PT')}
+                        td #{aAcao}
+                        td #{aRecurso}
+                        td #{a.utilizador_nome || '-'}

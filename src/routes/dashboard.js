@@ -6,8 +6,8 @@ const transacoesService = require('../services/transacoesService');
 
 router.get('/', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
     const contaId = req.session.utilizador.conta_id;
+    const utilizadorId = req.session.utilizador.id;
     
     // Pegar mês e ano atual ou dos parâmetros
     const hoje = new Date();
@@ -16,7 +16,7 @@ router.get('/', async (req, res, next) => {
     
     // Obter dados do dashboard e orçamentos em paralelo
     const [dados, orcamentosDados] = await Promise.all([
-      dashboardService.obterDados(utilizadorId, mes, ano),
+      dashboardService.obterDados(contaId, mes, ano),
       orcamentosService.obterResumoDashboard(contaId, mes, ano)
     ]);
 

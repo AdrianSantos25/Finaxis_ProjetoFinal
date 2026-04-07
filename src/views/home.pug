@@ -21,12 +21,20 @@ block content
             | Simplifique a gestão das suas finanças pessoais. 
             | Controle receitas, despesas e acompanhe a evolução do seu património com gráficos intuitivos.
           .hero-buttons.animate-fade-in-up-delay-2
-            a.btn.btn-primary.btn-hero.me-3(href="/auth/registar")
-              i.bi.bi-rocket-takeoff.me-2
-              | Começar Gratuitamente
-            a.btn.btn-outline-light.btn-hero(href="/auth/login")
-              i.bi.bi-play-circle.me-2
-              | Aceder à Conta
+            if utilizador
+              a.btn.btn-primary.btn-hero.me-3(href="/dashboard")
+                i.bi.bi-speedometer2.me-2
+                | Ir para o Dashboard
+              a.btn.btn-outline-light.btn-hero(href="/conta/configuracoes")
+                i.bi.bi-gear.me-2
+                | Ver Conta e Equipa
+            else
+              a.btn.btn-primary.btn-hero.me-3(href="/auth/registar")
+                i.bi.bi-rocket-takeoff.me-2
+                | Começar Gratuitamente
+              a.btn.btn-outline-light.btn-hero(href="/auth/login")
+                i.bi.bi-play-circle.me-2
+                | Aceder à Conta
           .hero-trust.animate-fade-in-up-delay-3
             .trust-avatars
               
@@ -274,21 +282,38 @@ block content
         .cta-shape.cta-shape-2
     .container.position-relative
       .cta-content.text-center.animate-on-scroll
-        h2.cta-title
-          | Pronto para transformar as suas 
-          span.text-white finanças?
-        p.cta-subtitle
-          | Junte-se a mais de 2.500 utilizadores que já controlam o seu dinheiro com a FINAXIS
-        .cta-buttons
-          a.btn.btn-light.btn-cta.me-3(href="/auth/registar")
-            i.bi.bi-rocket-takeoff.me-2
-            | Criar Conta Grátis
-          a.btn.btn-outline-light.btn-cta(href="/auth/login")
-            i.bi.bi-box-arrow-in-right.me-2
-            | Já tenho conta
-        .cta-guarantee
-          i.bi.bi-shield-check.me-2
-          | Registo gratuito • Sem cartão de crédito • Cancele quando quiser
+        if utilizador
+          h2.cta-title
+            | Sessão ativa com sucesso.
+            span.text-white Continue o controlo das suas finanças.
+          p.cta-subtitle
+            | Bem-vindo de volta, #{utilizador.nome}. A sua conta está pronta para continuar de onde parou.
+          .cta-buttons
+            a.btn.btn-light.btn-cta.me-3(href="/dashboard")
+              i.bi.bi-speedometer2.me-2
+              | Ir para o Dashboard
+            a.btn.btn-outline-light.btn-cta(href="/conta/configuracoes")
+              i.bi.bi-people.me-2
+              | Conta e Equipa
+          .cta-guarantee
+            i.bi.bi-check2-circle.me-2
+            | Está autenticado • Acesso imediato • Dados sincronizados
+        else
+          h2.cta-title
+            | Pronto para transformar as suas 
+            span.text-white finanças?
+          p.cta-subtitle
+            | Junte-se a mais de 2.500 utilizadores que já controlam o seu dinheiro com a FINAXIS
+          .cta-buttons
+            a.btn.btn-light.btn-cta.me-3(href="/auth/registar")
+              i.bi.bi-rocket-takeoff.me-2
+              | Criar Conta Grátis
+            a.btn.btn-outline-light.btn-cta(href="/auth/login")
+              i.bi.bi-box-arrow-in-right.me-2
+              | Já tenho conta
+          .cta-guarantee
+            i.bi.bi-shield-check.me-2
+            | Registo gratuito • Sem cartão de crédito • Cancele quando quiser
 
 block scripts
   script.

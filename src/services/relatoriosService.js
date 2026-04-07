@@ -6,7 +6,7 @@ class RelatoriosService {
   /**
    * Obter dados mensais de um ano para relatórios
    */
-  async obterDadosAnuais(utilizadorId, ano) {
+  async obterDadosAnuais(contaId, ano) {
     const mesesNomes = [
       'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
       'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
@@ -16,16 +16,16 @@ class RelatoriosService {
     const [receitasMensais] = await db.query(`
       SELECT MONTH(data) as mes, COALESCE(SUM(valor), 0) as total
       FROM transacoes
-      WHERE tipo = 'receita' AND YEAR(data) = ? AND utilizador_id = ?
+      WHERE tipo = 'receita' AND YEAR(data) = ? AND conta_id = ?
       GROUP BY MONTH(data)
-    `, [ano, utilizadorId]);
+    `, [ano, contaId]);
 
     const [despesasMensais] = await db.query(`
       SELECT MONTH(data) as mes, COALESCE(SUM(valor), 0) as total
       FROM transacoes
-      WHERE tipo = 'despesa' AND YEAR(data) = ? AND utilizador_id = ?
+      WHERE tipo = 'despesa' AND YEAR(data) = ? AND conta_id = ?
       GROUP BY MONTH(data)
-    `, [ano, utilizadorId]);
+    `, [ano, contaId]);
 
     // Mapear receitas e despesas por mês
     const receitasMap = {};
@@ -56,14 +56,14 @@ class RelatoriosService {
         SELECT c.nome, c.cor, SUM(t.valor) as total
         FROM transacoes t
         JOIN categorias c ON t.categoria_id = c.id
-        WHERE t.tipo = 'despesa' AND YEAR(t.data) = ? AND t.utilizador_id = ?
+        WHERE t.tipo = 'despesa' AND YEAR(t.data) = ? AND t.conta_id = ?
         GROUP BY c.id, c.nome, c.cor
         ORDER BY total DESC
         LIMIT 5
-      `, [ano, utilizadorId]),
+      `, [ano, contaId]),
       db.query(
-        'SELECT DISTINCT YEAR(data) as ano FROM transacoes WHERE utilizador_id = ? ORDER BY ano DESC',
-        [utilizadorId]
+        'SELECT DISTINCT YEAR(data) as ano FROM transacoes WHERE conta_id = ? ORDER BY ano DESC',
+        [contaId]
       )
     ]);
 
@@ -87,7 +87,7 @@ class RelatoriosService {
    * Obter evolução diária do saldo ao longo de um mês
    * Retorna array com { dia, receitas, despesas, saldoDiario, saldoAcumulado }
    */
-  async obterEvolucaoMensal(utilizadorId, mes, ano) {
+  async obterEvolucaoMensal(contaId, mes, ano) {
     const ultimoDia = new Date(ano, mes, 0).getDate();
     const inicioMes = `${ano}-${String(mes).padStart(2, '0')}-01`;
     const fimMes = `${ano}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
@@ -98,8 +98,8 @@ class RelatoriosService {
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) -
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as saldo
       FROM transacoes
-      WHERE utilizador_id = ? AND data < ?
-    `, [utilizadorId, inicioMes]);
+      WHERE conta_id = ? AND data < ?
+    `, [contaId, inicioMes]);
     let saldoAcumulado = parseFloat(saldoAnteriorRows[0].saldo) || 0;
 
     // Movimentos diários do mês
@@ -109,10 +109,10 @@ class RelatoriosService {
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitas,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesas
       FROM transacoes
-      WHERE utilizador_id = ? AND data BETWEEN ? AND ?
+      WHERE conta_id = ? AND data BETWEEN ? AND ?
       GROUP BY DAY(data)
       ORDER BY dia
-    `, [utilizadorId, inicioMes, fimMes]);
+    `, [contaId, inicioMes, fimMes]);
 
     const movimentosMap = {};
     movimentosDiarios.forEach(m => {
@@ -142,7 +142,7 @@ class RelatoriosService {
    * Obter dados de comparação entre dois meses
    * Retorna { mesAtual: { receitas, despesas, saldo }, mesAnterior: { receitas, despesas, saldo } }
    */
-  async obterComparacaoMeses(utilizadorId, mes, ano) {
+  async obterComparacaoMeses(contaId, mes, ano) {
     // Mês anterior
     let mesAnterior = mes - 1;
     let anoAnterior = ano;
@@ -161,8 +161,8 @@ class RelatoriosService {
           COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitas,
           COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesas
         FROM transacoes
-        WHERE utilizador_id = ? AND data BETWEEN ? AND ?
-      `, [utilizadorId, inicio, fim]);
+        WHERE conta_id = ? AND data BETWEEN ? AND ?
+      `, [contaId, inicio, fim]);
 
       const receitas = parseFloat(rows[0].receitas) || 0;
       const despesas = parseFloat(rows[0].despesas) || 0;
@@ -172,11 +172,11 @@ class RelatoriosService {
         SELECT c.nome, c.cor, SUM(t.valor) as total
         FROM transacoes t
         JOIN categorias c ON t.categoria_id = c.id
-        WHERE t.tipo = 'despesa' AND t.data BETWEEN ? AND ? AND t.utilizador_id = ?
+        WHERE t.tipo = 'despesa' AND t.data BETWEEN ? AND ? AND t.conta_id = ?
         GROUP BY c.id, c.nome, c.cor
         ORDER BY total DESC
         LIMIT 5
-      `, [inicio, fim, utilizadorId]);
+      `, [inicio, fim, contaId]);
 
       return { receitas, despesas, saldo: receitas - despesas, topCategorias };
     };
@@ -207,14 +207,14 @@ class RelatoriosService {
   /**
    * Exportar transações de um ano em formato CSV
    */
-  async exportarCSV(utilizadorId, ano) {
+  async exportarCSV(contaId, ano) {
     const [transacoes] = await db.query(
       `SELECT t.descricao, t.valor, t.tipo, t.data, c.nome as categoria
        FROM transacoes t
        LEFT JOIN categorias c ON t.categoria_id = c.id
-       WHERE t.utilizador_id = ? AND YEAR(t.data) = ?
+       WHERE t.conta_id = ? AND YEAR(t.data) = ?
        ORDER BY t.data DESC`,
-      [utilizadorId, ano]
+      [contaId, ano]
     );
 
     let csv = 'Data;Descrição;Tipo;Categoria;Valor\n';
@@ -232,14 +232,14 @@ class RelatoriosService {
   /**
    * Exportar transações de um ano em formato Excel
    */
-  async exportarExcel(utilizadorId, ano) {
+  async exportarExcel(contaId, ano) {
     const [transacoes] = await db.query(
       `SELECT t.descricao, t.valor, t.tipo, t.data, c.nome as categoria
        FROM transacoes t
        LEFT JOIN categorias c ON t.categoria_id = c.id
-       WHERE t.utilizador_id = ? AND YEAR(t.data) = ?
+       WHERE t.conta_id = ? AND YEAR(t.data) = ?
        ORDER BY t.data DESC`,
-      [utilizadorId, ano]
+      [contaId, ano]
     );
 
     const dados = transacoes.map(t => ({
@@ -269,14 +269,14 @@ class RelatoriosService {
   /**
    * Exportar transações de um ano em formato PDF
    */
-  async exportarPDF(utilizadorId, ano) {
+  async exportarPDF(contaId, ano) {
     const [transacoes] = await db.query(
       `SELECT t.descricao, t.valor, t.tipo, t.data, c.nome as categoria
        FROM transacoes t
        LEFT JOIN categorias c ON t.categoria_id = c.id
-       WHERE t.utilizador_id = ? AND YEAR(t.data) = ?
+       WHERE t.conta_id = ? AND YEAR(t.data) = ?
        ORDER BY t.data DESC`,
-      [utilizadorId, ano]
+      [contaId, ano]
     );
 
     // Calcular totais
@@ -359,7 +359,7 @@ class RelatoriosService {
    * Importar transações a partir de CSV ou Excel
    * Retorna { sucesso: number, erros: string[] }
    */
-  async importarDados(utilizadorId, fileBuffer, fileName) {
+  async importarDados(contaId, utilizadorId, fileBuffer, fileName) {
     const erros = [];
     let sucesso = 0;
     let dados = [];
@@ -409,8 +409,8 @@ class RelatoriosService {
 
     // Buscar categorias disponíveis
     const [categorias] = await db.query(
-      'SELECT id, nome, tipo FROM categorias WHERE utilizador_id = ? OR utilizador_id IS NULL',
-      [utilizadorId]
+      'SELECT id, nome, tipo FROM categorias WHERE conta_id = ? OR utilizador_id IS NULL',
+      [contaId]
     );
 
     for (const row of dados) {
@@ -457,8 +457,8 @@ class RelatoriosService {
         }
 
         await db.query(
-          'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id) VALUES (?, ?, ?, ?, ?, ?)',
-          [descricao.trim(), valorNum, tipo, categoriaId, data, utilizadorId]
+          'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, conta_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [descricao.trim(), valorNum, tipo, categoriaId, data, utilizadorId, contaId]
         );
         sucesso++;
       } catch (err) {

@@ -144,8 +144,8 @@ class SaaSService {
     const fimMes = `${ano}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
 
     const [rows] = await db.query(
-      'SELECT COUNT(*) as total FROM transacoes WHERE utilizador_id = ? AND data BETWEEN ? AND ?',
-      [utilizadorId, inicioMes, fimMes]
+      'SELECT COUNT(*) as total FROM transacoes WHERE conta_id = ? AND data BETWEEN ? AND ?',
+      [contexto.utilizador.conta_id, inicioMes, fimMes]
     );
 
     const total = rows[0].total || 0;
@@ -168,8 +168,8 @@ class SaaSService {
     }
 
     const [rows] = await db.query(
-      'SELECT COUNT(*) as total FROM orcamentos WHERE utilizador_id = ? AND mes = ? AND ano = ?',
-      [utilizadorId, mes, ano]
+      'SELECT COUNT(*) as total FROM orcamentos WHERE conta_id = ? AND mes = ? AND ano = ?',
+      [contexto.utilizador.conta_id, mes, ano]
     );
 
     const total = rows[0].total || 0;

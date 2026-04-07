@@ -62,25 +62,36 @@ function renderRegistar(res, { erro = null, convite = null, conviteToken = '' } 
   });
 }
 
+function renderLogin(res, { erro = null, conviteToken = '' } = {}) {
+  return res.render('auth/login', {
+    titulo: 'Entrar',
+    erro,
+    conviteToken,
+    hideFooter: true
+  });
+}
+
 router.get('/login', (req, res) => {
   if (req.session.utilizador) return res.redirect('/dashboard');
-  res.render('auth/login', { titulo: 'Entrar', erro: null, hideFooter: true });
+  const conviteToken = req.query.convite || req.query.conviteToken || '';
+  renderLogin(res, { conviteToken });
 });
 
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const conviteToken = req.body.conviteToken || '';
     const [utilizadores] = await db.query('SELECT * FROM utilizadores WHERE email = ?', [email]);
 
     if (utilizadores.length === 0) {
-      return res.render('auth/login', { titulo: 'Entrar', erro: 'Email ou palavra-passe incorretos', hideFooter: true });
+      return renderLogin(res, { erro: 'Email ou palavra-passe incorretos', conviteToken });
     }
 
     const utilizador = utilizadores[0];
     const passwordValida = await bcrypt.compare(password, utilizador.password);
 
     if (!passwordValida) {
-      return res.render('auth/login', { titulo: 'Entrar', erro: 'Email ou palavra-passe incorretos', hideFooter: true });
+      return renderLogin(res, { erro: 'Email ou palavra-passe incorretos', conviteToken });
     }
 
     const contexto = await saasService.obterContextoUtilizador(utilizador.id);
@@ -97,10 +108,15 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const returnTo = req.session.returnTo;
     delete req.session.returnTo;
+
+    if (conviteToken) {
+      return res.redirect(`/conta/convites/aceitar/${conviteToken}`);
+    }
+
     res.redirect(returnTo || '/dashboard');
   } catch (err) {
     console.error('Erro no login:', err);
-    res.render('auth/login', { titulo: 'Entrar', erro: 'Erro ao processar o login. Tente novamente.', hideFooter: true });
+    renderLogin(res, { erro: 'Erro ao processar o login. Tente novamente.' });
   }
 });
 

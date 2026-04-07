@@ -27,6 +27,7 @@ const upload = multer({
 
 router.get('/', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const hoje = new Date();
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
@@ -34,9 +35,9 @@ router.get('/', async (req, res, next) => {
 
     // Executar queries em paralelo
     const [dados, evolucao, comparacao] = await Promise.all([
-      relatoriosService.obterDadosAnuais(utilizadorId, ano),
-      relatoriosService.obterEvolucaoMensal(utilizadorId, mes, ano),
-      relatoriosService.obterComparacaoMeses(utilizadorId, mes, ano)
+      relatoriosService.obterDadosAnuais(contaId, ano),
+      relatoriosService.obterEvolucaoMensal(contaId, mes, ano),
+      relatoriosService.obterComparacaoMeses(contaId, mes, ano)
     ]);
 
     const meses = [
@@ -62,10 +63,10 @@ router.get('/', async (req, res, next) => {
 // Exportar relatório em CSV
 router.get('/exportar/csv', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const ano = parseInt(req.query.ano) || new Date().getFullYear();
 
-    const csv = await relatoriosService.exportarCSV(utilizadorId, ano);
+    const csv = await relatoriosService.exportarCSV(contaId, ano);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=relatorio_${ano}.csv`);
@@ -79,11 +80,12 @@ router.get('/exportar/csv', async (req, res, next) => {
 // Exportar relatório em Excel
 router.get('/exportar/excel', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     await saasService.verificarFuncionalidade(utilizadorId, 'exportExcel');
     const ano = parseInt(req.query.ano) || new Date().getFullYear();
 
-    const buffer = await relatoriosService.exportarExcel(utilizadorId, ano);
+    const buffer = await relatoriosService.exportarExcel(contaId, ano);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=relatorio_${ano}.xlsx`);
@@ -100,11 +102,12 @@ router.get('/exportar/excel', async (req, res, next) => {
 // Exportar relatório em PDF
 router.get('/exportar/pdf', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     await saasService.verificarFuncionalidade(utilizadorId, 'exportPdf');
     const ano = parseInt(req.query.ano) || new Date().getFullYear();
 
-    const buffer = await relatoriosService.exportarPDF(utilizadorId, ano);
+    const buffer = await relatoriosService.exportarPDF(contaId, ano);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=relatorio_${ano}.pdf`);
@@ -121,6 +124,7 @@ router.get('/exportar/pdf', async (req, res, next) => {
 // Importar transações de ficheiro CSV/Excel
 router.post('/importar', upload.single('ficheiro'), async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     await saasService.verificarFuncionalidade(utilizadorId, 'importDados');
 
@@ -130,6 +134,7 @@ router.post('/importar', upload.single('ficheiro'), async (req, res, next) => {
     }
 
     const resultado = await relatoriosService.importarDados(
+      contaId,
       utilizadorId,
       req.file.buffer,
       req.file.originalname

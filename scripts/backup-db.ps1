@@ -1,5 +1,6 @@
 param(
-  [string]$OutputDir = "data/backups"
+  [string]$OutputDir = "data/backups",
+  [int]$RetentionDays = 14
 )
 
 $ErrorActionPreference = "Stop"
@@ -60,3 +61,10 @@ if ($dbPass) {
 }
 
 Write-Host "Backup criado em: $file"
+
+if ($RetentionDays -gt 0) {
+  $limite = (Get-Date).AddDays(-$RetentionDays)
+  Get-ChildItem -Path $OutputDir -Filter "*.sql" -File |
+    Where-Object { $_.LastWriteTime -lt $limite } |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+}

@@ -9,6 +9,9 @@ require('dotenv').config();
 const db = require('./database');
 const { verificarAutenticacao, adicionarContextoSaaS, adicionarVariaveisLocais } = require('./middlewares/auth');
 const { errorHandler } = require('./middlewares/errorHandler');
+const { validateEnvironment, getSessionCookieSettings } = require('./config/env');
+
+validateEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -71,15 +74,12 @@ app.use((req, res, next) => {
 
 // Configurar sessões
 app.use(session({
+  name: 'finaxis.sid',
   secret: process.env.SESSION_SECRET || 'gestor-financeiro-secret-key-2025',
   resave: false,
   saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000 // 24 horas
-  }
+  rolling: true,
+  cookie: getSessionCookieSettings()
 }));
 
 // Middleware para disponibilizar variáveis em todas as views

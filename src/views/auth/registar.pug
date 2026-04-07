@@ -59,4 +59,4 @@ block content
           .text-center
             p.mb-0.text-muted.small
               | Já tem conta?
-              a.ms-1(href="/auth/login") Entrar
+              a.ms-1(href=(conviteToken ? '/auth/login?convite=' + conviteToken : '/auth/login')) Entrar

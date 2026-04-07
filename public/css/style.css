@@ -272,6 +272,94 @@ a:hover {
   transform: scale(1.1);
 }
 
+.user-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.user-menu-dropdown {
+  min-width: 300px;
+  padding: 0.75rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--color-gray-200);
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
+}
+
+.user-menu-plan {
+  padding: 0.4rem 0.45rem 0.55rem;
+}
+
+.user-menu-plan-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-gray-500);
+  margin-bottom: 0.5rem;
+}
+
+.user-menu-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-menu-plan-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.58rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.user-menu-plan-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.user-menu-plan-status.is-active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.user-menu-plan-status.is-trial {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.user-menu-plan-status.is-warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.user-menu-plan-status.is-canceled {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.user-menu-dropdown .dropdown-divider {
+  margin: 0.55rem 0;
+}
+
+.user-menu-item {
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  font-weight: 600;
+}
+
+.user-menu-item:hover {
+  background: var(--color-gray-100);
+  transform: translateX(0);
+}
+
 /* ============================================
    BOTÕES - Estilo Premium com Animações
    ============================================ */
@@ -418,6 +506,55 @@ a:hover {
 /* ============================================
    CARDS - Design Premium com Animações
    ============================================ */
+
+/* ============================================
+   CONTA / PERMISSOES
+   ============================================ */
+.conta-page .card {
+  border-radius: 1.15rem;
+}
+
+.conta-hero {
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.09), transparent 50%), var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 1.2rem;
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.conta-hero-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.permission-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.permission-item {
+  border: 1px solid var(--color-gray-200);
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--color-gray-50);
+}
+
+.permission-badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+  margin-bottom: 0.5rem;
+}
 .card {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);

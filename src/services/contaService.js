@@ -11,10 +11,29 @@ class ContaService {
 
   async listarMembros(contaId) {
     const [rows] = await db.query(
-      'SELECT id, nome, email, papel, criado_em FROM utilizadores WHERE conta_id = ? ORDER BY criado_em ASC',
+      `SELECT id, nome, email, papel, criado_em
+       FROM utilizadores
+       WHERE conta_id = ?
+       ORDER BY CASE WHEN papel = 'admin' THEN 0 ELSE 1 END, criado_em ASC`,
       [contaId]
     );
     return rows;
+  }
+
+  async _obterMembro(contaId, membroId) {
+    const [rows] = await db.query(
+      'SELECT id, nome, email, papel FROM utilizadores WHERE id = ? AND conta_id = ? LIMIT 1',
+      [membroId, contaId]
+    );
+    return rows[0] || null;
+  }
+
+  async _contarAdmins(contaId) {
+    const [rows] = await db.query(
+      "SELECT COUNT(*) as total FROM utilizadores WHERE conta_id = ? AND papel = 'admin'",
+      [contaId]
+    );
+    return rows[0].total || 0;
   }
 
   async listarConvites(contaId) {
@@ -71,6 +90,57 @@ class ContaService {
       [conviteId, contaId]
     );
     return resultado.affectedRows > 0;
+  }
+
+  async atualizarPapelMembro({ contaId, membroId, novoPapel, atorId }) {
+    const papel = novoPapel === 'admin' ? 'admin' : 'membro';
+    const membro = await this._obterMembro(contaId, membroId);
+
+    if (!membro) {
+      throw new AppError('Membro não encontrado nesta conta.', 404);
+    }
+
+    if (membro.id === atorId && papel !== 'admin') {
+      throw new AppError('Não pode remover os seus próprios privilégios de administrador.', 400);
+    }
+
+    if (membro.papel === 'admin' && papel === 'membro') {
+      const totalAdmins = await this._contarAdmins(contaId);
+      if (totalAdmins <= 1) {
+        throw new AppError('A conta precisa de pelo menos um administrador.', 400);
+      }
+    }
+
+    await db.query('UPDATE utilizadores SET papel = ? WHERE id = ? AND conta_id = ?', [papel, membroId, contaId]);
+
+    return {
+      id: membro.id,
+      nome: membro.nome,
+      papelAnterior: membro.papel,
+      papelNovo: papel
+    };
+  }
+
+  async removerMembro({ contaId, membroId, atorId }) {
+    if (membroId === atorId) {
+      throw new AppError('Não pode remover a sua própria conta por esta área.', 400);
+    }
+
+    const membro = await this._obterMembro(contaId, membroId);
+    if (!membro) {
+      throw new AppError('Membro não encontrado nesta conta.', 404);
+    }
+
+    if (membro.papel === 'admin') {
+      const totalAdmins = await this._contarAdmins(contaId);
+      if (totalAdmins <= 1) {
+        throw new AppError('Não é possível remover o último administrador da conta.', 400);
+      }
+    }
+
+    await db.query('DELETE FROM utilizadores WHERE id = ? AND conta_id = ?', [membroId, contaId]);
+
+    return membro;
   }
 
   async obterConvitePorToken(token) {

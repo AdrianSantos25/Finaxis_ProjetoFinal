@@ -15,7 +15,13 @@ block content
               i.bi.bi-exclamation-triangle.me-2
               small #{erro}
 
+          if conviteToken
+            .alert.alert-info.py-2.mb-2
+              small Está a entrar com um convite de equipa. Após o login, o convite será processado automaticamente.
+
           form(method="POST" action="/auth/login")
+            if conviteToken
+              input(type="hidden" name="conviteToken" value=conviteToken)
             .mb-2
               label.form-label.small.mb-1(for="email") Email
               .input-group.input-group-sm
@@ -41,4 +47,4 @@ block content
           .text-center
             p.mb-0.text-muted.small
               | Ainda não tem conta?
-              a.ms-1(href="/auth/registar") Criar conta
+              a.ms-1(href=(conviteToken ? '/auth/registar?convite=' + conviteToken : '/auth/registar')) Criar conta

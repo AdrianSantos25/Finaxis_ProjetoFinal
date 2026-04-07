@@ -245,6 +245,34 @@ npm run backup:db
 ```
 
 O ficheiro é gerado em `data/backups/`.
+Backups com mais de 14 dias são removidos automaticamente.
+
+### Validação e testes
+
+```bash
+npm run check
+npm test
+```
+
+- `npm run check`: valida sintaxe de ficheiros JS e templates Pug
+- `npm test`: executa testes automáticos (auth, permissões, transações, convite e webhook)
+
+## ⚙️ CI/CD
+
+- Workflow de CI em `.github/workflows/ci.yml`
+   - `npm ci`
+   - `npm run check`
+   - `npm test`
+- Workflow de deploy em `.github/workflows/deploy.yml` (opcional por SSH)
+
+### Secrets para deploy
+
+Configure os seguintes secrets no GitHub para ativar deploy automático:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_APP_PATH`
 
 ## 🎨 Interface
 

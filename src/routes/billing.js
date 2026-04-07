@@ -1,7 +1,16 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const saasService = require('../services/saasService');
 const billingService = require('../services/billingService');
+
+const billingWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Muitas tentativas de alteracao de plano. Tente novamente em alguns minutos.'
+});
 
 router.get('/', async (req, res, next) => {
   try {
@@ -21,7 +30,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/checkout', async (req, res, next) => {
+router.post('/checkout', billingWriteLimiter, async (req, res, next) => {
   try {
     const utilizador = req.session.utilizador;
     const { plano } = req.body;
@@ -40,7 +49,7 @@ router.post('/checkout', async (req, res, next) => {
   }
 });
 
-router.post('/downgrade', async (req, res, next) => {
+router.post('/downgrade', billingWriteLimiter, async (req, res, next) => {
   try {
     const contaId = req.session.utilizador.conta_id;
     await billingService.downgradeContaParaFree(contaId, true);

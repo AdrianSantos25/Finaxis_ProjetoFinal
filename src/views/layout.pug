@@ -20,6 +20,10 @@ html(lang="pt-PT")
           ul.navbar-nav.ms-auto
             if utilizador
               li.nav-item
+                a.nav-link(href="/" class=(titulo === 'Início' ? 'active' : ''))
+                  i.bi.bi-house-door.me-1
+                  | Início
+              li.nav-item
                 a.nav-link(href="/dashboard" class=(titulo === 'Dashboard' ? 'active' : ''))
                   i.bi.bi-speedometer2.me-1
                   | Dashboard
@@ -44,35 +48,39 @@ html(lang="pt-PT")
                   i.bi.bi-gear.me-1
                   | Conta
               li.nav-item.dropdown
-                a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown")
+                a.nav-link.dropdown-toggle.user-menu-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
                   i.bi.bi-person-circle.me-1
-                  | #{utilizador.nome}
-                ul.dropdown-menu.dropdown-menu-end
-                  li
-                    span.dropdown-item-text
-                      | Plano: 
-                      strong= (planoAtual || 'free').toUpperCase()
-                      if subscricaoStatus
-                        |  · 
-                        span.text-muted= subscricaoStatus
+                  span.user-menu-name #{utilizador.nome}
+                ul.dropdown-menu.dropdown-menu-end.user-menu-dropdown
+                  - const planoTexto = ((planoAtual || 'free') + '').toUpperCase()
+                  - const statusBruto = (subscricaoStatus || 'active') + ''
+                  - const statusTexto = ({ active: 'Ativo', trialing: 'Em trial', past_due: 'Pendente', canceled: 'Cancelado' })[statusBruto] || statusBruto
+                  - const statusClasse = ({ active: 'is-active', trialing: 'is-trial', past_due: 'is-warning', canceled: 'is-canceled' })[statusBruto] || 'is-active'
+                  li.user-menu-plan
+                    .user-menu-plan-label O seu plano atual
+                    .user-menu-plan-row
+                      span.user-menu-plan-pill= planoTexto
+                      span.user-menu-plan-status(class=statusClasse)= statusTexto
                   li
                     hr.dropdown-divider
                   li
-                    a.dropdown-item(href="/billing")
+                    a.dropdown-item.user-menu-item(href="/billing")
                       i.bi.bi-credit-card-2-front.me-2
                       | Plano e Faturação
                   li
+                    a.dropdown-item.user-menu-item(href="/conta/configuracoes")
+                      i.bi.bi-sliders.me-2
+                      | Conta e Permissões
+                  li
                     hr.dropdown-divider
                   li
-                    a.dropdown-item.text-danger(href="#" data-bs-toggle="modal" data-bs-target="#modalEliminarConta")
+                    a.dropdown-item.user-menu-item.text-danger(href="#" data-bs-toggle="modal" data-bs-target="#modalEliminarConta")
                       i.bi.bi-trash.me-2
                       | Eliminar Conta
                   li
-                    hr.dropdown-divider
-                  li
-                    a.dropdown-item(href="/auth/sair")
+                    a.dropdown-item.user-menu-item(href="/auth/sair")
                       i.bi.bi-box-arrow-right.me-2
-                      | Sair
+                      | Terminar Sessão
             else
               li.nav-item
                 a.nav-link(href="/auth/login")
