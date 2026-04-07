@@ -39,11 +39,30 @@ html(lang="pt-PT")
                 a.nav-link(href="/relatorios" class=(titulo === 'Relatórios' ? 'active' : ''))
                   i.bi.bi-graph-up.me-1
                   | Relatórios
+              li.nav-item
+                a.nav-link(href="/conta/configuracoes" class=(titulo === 'Configurações da Conta' ? 'active' : ''))
+                  i.bi.bi-gear.me-1
+                  | Conta
               li.nav-item.dropdown
                 a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown")
                   i.bi.bi-person-circle.me-1
                   | #{utilizador.nome}
                 ul.dropdown-menu.dropdown-menu-end
+                  li
+                    span.dropdown-item-text
+                      | Plano: 
+                      strong= (planoAtual || 'free').toUpperCase()
+                      if subscricaoStatus
+                        |  · 
+                        span.text-muted= subscricaoStatus
+                  li
+                    hr.dropdown-divider
+                  li
+                    a.dropdown-item(href="/billing")
+                      i.bi.bi-credit-card-2-front.me-2
+                      | Plano e Faturação
+                  li
+                    hr.dropdown-divider
                   li
                     a.dropdown-item.text-danger(href="#" data-bs-toggle="modal" data-bs-target="#modalEliminarConta")
                       i.bi.bi-trash.me-2

@@ -128,8 +128,37 @@ async function verificarConexaoEmail() {
   }
 }
 
+async function enviarEmailConvite(email, token, host) {
+  if (!transporter) {
+    const erro = new Error('SMTP não configurado. Configure SMTP_USER e SMTP_PASS.');
+    erro.code = 'SMTP_NOT_CONFIGURED';
+    throw erro;
+  }
+
+  const link = `${host}/conta/convites/aceitar/${token}`;
+
+  return transporter.sendMail({
+    from: `"FINAXIS" <${process.env.SMTP_USER || 'noreply@finaxis.com'}>`,
+    to: email,
+    subject: 'Convite para equipa - FINAXIS',
+    html: `
+      <div style="font-family:Segoe UI,Arial,sans-serif;max-width:620px;margin:0 auto;padding:20px;line-height:1.6;color:#1f2937">
+        <h2>Foi convidado para uma equipa no FINAXIS</h2>
+        <p>Recebeu um convite para colaborar numa conta partilhada.</p>
+        <p>
+          <a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">
+            Aceitar convite
+          </a>
+        </p>
+        <p style="font-size:13px;color:#6b7280">Se o botão não funcionar, use este link:<br>${link}</p>
+      </div>
+    `
+  });
+}
+
 module.exports = {
   transporter,
   enviarEmailRecuperacao,
+  enviarEmailConvite,
   verificarConexaoEmail
 };

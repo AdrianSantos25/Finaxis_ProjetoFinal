@@ -15,7 +15,13 @@ block content
               i.bi.bi-exclamation-triangle.me-2
               small #{erro}
 
+          if convite
+            .alert.alert-info.py-2.mb-2
+              small Está a registar-se através de um convite para entrar numa equipa.
+
           form(method="POST" action="/auth/registar")
+            if conviteToken
+              input(type="hidden" name="conviteToken" value=conviteToken)
             .mb-2
               label.form-label.small.mb-1(for="nome") Nome
               .input-group.input-group-sm
@@ -28,7 +34,7 @@ block content
               .input-group.input-group-sm
                 span.input-group-text
                   i.bi.bi-envelope
-                input.form-control(type="email" name="email" id="email" required placeholder="seu@email.com")
+                input.form-control(type="email" name="email" id="email" required placeholder="seu@email.com" value=(convite ? convite.email : '') readonly=!!convite)
 
             .mb-2
               label.form-label.small.mb-1(for="password") Palavra-passe

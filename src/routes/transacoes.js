@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const transacoesService = require('../services/transacoesService');
 const categoriasService = require('../services/categoriasService');
+const saasService = require('../services/saasService');
+const auditService = require('../services/auditService');
 const { validarTransacao, validarTransacaoAPI } = require('../middlewares/validacao');
 
 // Configurar pasta de uploads
@@ -43,6 +45,7 @@ const upload = multer({
 // Listar transações (com paginação)
 router.get('/', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const tipo = req.query.tipo || '';
     const categoria = req.query.categoria || '';
@@ -52,7 +55,7 @@ router.get('/', async (req, res, next) => {
     const pagina = parseInt(req.query.pagina) || 1;
     const limite = 20;
 
-    const { transacoes, paginacao } = await transacoesService.listar(utilizadorId, {
+    const { transacoes, paginacao } = await transacoesService.listar(contaId, {
       tipo,
       categoria,
       pesquisa,
@@ -62,7 +65,7 @@ router.get('/', async (req, res, next) => {
       limite
     });
 
-    const categorias = await categoriasService.listarSimples(utilizadorId);
+    const categorias = await categoriasService.listarSimples(contaId);
 
     res.render('transacoes/lista', {
       titulo: 'Transações',
@@ -83,8 +86,8 @@ router.get('/', async (req, res, next) => {
 // Formulário nova transação
 router.get('/nova', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
-    const categorias = await categoriasService.listarSimples(utilizadorId);
+    const contaId = req.session.utilizador.conta_id;
+    const categorias = await categoriasService.listarSimples(contaId);
     const hoje = new Date().toISOString().split('T')[0];
 
     res.render('transacoes/form', {
@@ -101,7 +104,9 @@ router.get('/nova', async (req, res, next) => {
 // Criar transação (formulário)
 router.post('/', upload.single('comprovativo'), validarTransacao, async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
+    await saasService.verificarLimiteTransacoes(utilizadorId, req.body.data);
     const dados = { ...req.body };
     
     // Adicionar caminho do arquivo se foi feito upload
@@ -109,7 +114,16 @@ router.post('/', upload.single('comprovativo'), validarTransacao, async (req, re
       dados.comprovativo = req.file.filename;
     }
     
-    await transacoesService.criar(utilizadorId, dados);
+    await transacoesService.criar(contaId, utilizadorId, dados);
+    await auditService.registar({
+      contaId,
+      utilizadorId,
+      recurso: 'transacoes',
+      acao: 'criar',
+      detalhes: { descricao: dados.descricao, valor: dados.valor, tipo: dados.tipo },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     req.session.sucesso = 'Transação criada com sucesso!';
     res.redirect('/transacoes');
   } catch (err) {
@@ -117,6 +131,12 @@ router.post('/', upload.single('comprovativo'), validarTransacao, async (req, re
     if (req.file) {
       fs.unlink(req.file.path, () => {});
     }
+
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      req.session.erro = err.message;
+      return res.redirect('/transacoes');
+    }
+
     next(err);
   }
 });
@@ -124,10 +144,15 @@ router.post('/', upload.single('comprovativo'), validarTransacao, async (req, re
 // API para criar transação via AJAX (modal)
 router.post('/api/criar', validarTransacaoAPI, async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
-    await transacoesService.criar(utilizadorId, req.body);
+    await saasService.verificarLimiteTransacoes(utilizadorId, req.body.data);
+    await transacoesService.criar(contaId, utilizadorId, req.body);
     res.json({ success: true, message: 'Transação criada com sucesso!' });
   } catch (err) {
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
     next(err);
   }
 });
@@ -135,14 +160,14 @@ router.post('/api/criar', validarTransacaoAPI, async (req, res, next) => {
 // Formulário editar transação
 router.get('/:id/editar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
-    const transacao = await transacoesService.buscarPorId(req.params.id, utilizadorId);
+    const contaId = req.session.utilizador.conta_id;
+    const transacao = await transacoesService.buscarPorId(req.params.id, contaId);
 
     if (!transacao) {
       return res.redirect('/transacoes');
     }
 
-    const categorias = await categoriasService.listarSimples(utilizadorId);
+    const categorias = await categoriasService.listarSimples(contaId);
 
     res.render('transacoes/form', {
       titulo: 'Editar Transação',
@@ -158,11 +183,11 @@ router.get('/:id/editar', async (req, res, next) => {
 // Atualizar transação
 router.post('/:id', upload.single('comprovativo'), validarTransacao, async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const transacaoId = req.params.id;
 
     // Verificar se a transação existe e pertence ao utilizador
-    const transacao = await transacoesService.buscarPorId(transacaoId, utilizadorId);
+    const transacao = await transacoesService.buscarPorId(transacaoId, contaId);
     if (!transacao) {
       if (req.file) {
         fs.unlink(req.file.path, () => {});
@@ -186,7 +211,17 @@ router.post('/:id', upload.single('comprovativo'), validarTransacao, async (req,
       dados.comprovativo = transacao.comprovativo;
     }
 
-    await transacoesService.atualizar(transacaoId, utilizadorId, dados);
+    await transacoesService.atualizar(transacaoId, contaId, dados);
+    await auditService.registar({
+      contaId,
+      utilizadorId: req.session.utilizador.id,
+      recurso: 'transacoes',
+      acao: 'editar',
+      recursoId: transacaoId,
+      detalhes: { descricao: dados.descricao, valor: dados.valor, tipo: dados.tipo },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     req.session.sucesso = 'Transação atualizada com sucesso!';
     res.redirect('/transacoes');
   } catch (err) {
@@ -200,12 +235,12 @@ router.post('/:id', upload.single('comprovativo'), validarTransacao, async (req,
 // Eliminar transação
 router.post('/:id/eliminar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     
     // Buscar transação antes de eliminar para apagar o comprovativo
-    const transacao = await transacoesService.buscarPorId(req.params.id, utilizadorId);
+    const transacao = await transacoesService.buscarPorId(req.params.id, contaId);
     
-    const resultado = await transacoesService.eliminar(req.params.id, utilizadorId);
+    const resultado = await transacoesService.eliminar(req.params.id, contaId);
 
     if (resultado.affectedRows === 0) {
       req.session.erro = 'Transação não encontrada.';
@@ -215,6 +250,15 @@ router.post('/:id/eliminar', async (req, res, next) => {
         const filePath = path.join(uploadsDir, transacao.comprovativo);
         fs.unlink(filePath, () => {});
       }
+      await auditService.registar({
+        contaId,
+        utilizadorId: req.session.utilizador.id,
+        recurso: 'transacoes',
+        acao: 'eliminar',
+        recursoId: req.params.id,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
       req.session.sucesso = 'Transação eliminada com sucesso!';
     }
 
@@ -227,10 +271,10 @@ router.post('/:id/eliminar', async (req, res, next) => {
 // Remover comprovativo de uma transação
 router.post('/:id/remover-comprovativo', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const transacaoId = req.params.id;
 
-    const transacao = await transacoesService.buscarPorId(transacaoId, utilizadorId);
+    const transacao = await transacoesService.buscarPorId(transacaoId, contaId);
     
     if (!transacao) {
       req.session.erro = 'Transação não encontrada.';
@@ -255,7 +299,16 @@ router.post('/:id/remover-comprovativo', async (req, res, next) => {
         comprovativo: null
       };
       
-      await transacoesService.atualizar(transacaoId, utilizadorId, dados);
+      await transacoesService.atualizar(transacaoId, contaId, dados);
+      await auditService.registar({
+        contaId,
+        utilizadorId: req.session.utilizador.id,
+        recurso: 'transacoes',
+        acao: 'remover_comprovativo',
+        recursoId: transacaoId,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
       req.session.sucesso = 'Comprovativo removido com sucesso!';
     }
 

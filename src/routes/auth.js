@@ -5,12 +5,13 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const db = require('../database');
 const { enviarEmailRecuperacao } = require('../email');
+const saasService = require('../services/saasService');
+const contaService = require('../services/contaService');
+const auditService = require('../services/auditService');
 
-// Rate limiter para login (máx 5 tentativas por 15 minutos)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: 'Demasiadas tentativas de login. Tente novamente em 15 minutos.',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -22,11 +23,9 @@ const loginLimiter = rateLimit({
   }
 });
 
-// Rate limiter para registo (máx 3 por hora)
 const registoLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
-  message: 'Demasiados registos. Tente novamente mais tarde.',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -38,11 +37,9 @@ const registoLimiter = rateLimit({
   }
 });
 
-// Rate limiter para recuperação de senha (máx 3 por hora)
 const recuperarLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
-  message: 'Demasiados pedidos de recuperação. Tente novamente mais tarde.',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -55,169 +52,172 @@ const recuperarLimiter = rateLimit({
   }
 });
 
-// Página de login
-router.get('/login', (req, res) => {
-  if (req.session.utilizador) {
-    return res.redirect('/dashboard');
-  }
-  
-  res.render('auth/login', {
-    titulo: 'Entrar',
-    erro: null,
+function renderRegistar(res, { erro = null, convite = null, conviteToken = '' } = {}) {
+  return res.render('auth/registar', {
+    titulo: 'Criar Conta',
+    erro,
+    convite,
+    conviteToken,
     hideFooter: true
   });
+}
+
+router.get('/login', (req, res) => {
+  if (req.session.utilizador) return res.redirect('/dashboard');
+  res.render('auth/login', { titulo: 'Entrar', erro: null, hideFooter: true });
 });
 
-// Processar login
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Buscar utilizador pelo email
-    const [utilizadores] = await db.query(
-      'SELECT * FROM utilizadores WHERE email = ?',
-      [email]
-    );
-    
+    const [utilizadores] = await db.query('SELECT * FROM utilizadores WHERE email = ?', [email]);
+
     if (utilizadores.length === 0) {
-      return res.render('auth/login', {
-        titulo: 'Entrar',
-        erro: 'Email ou palavra-passe incorretos',
-        hideFooter: true
-      });
+      return res.render('auth/login', { titulo: 'Entrar', erro: 'Email ou palavra-passe incorretos', hideFooter: true });
     }
-    
+
     const utilizador = utilizadores[0];
-    
-    // Verificar password
     const passwordValida = await bcrypt.compare(password, utilizador.password);
-    
+
     if (!passwordValida) {
-      return res.render('auth/login', {
-        titulo: 'Entrar',
-        erro: 'Email ou palavra-passe incorretos',
-        hideFooter: true
-      });
+      return res.render('auth/login', { titulo: 'Entrar', erro: 'Email ou palavra-passe incorretos', hideFooter: true });
     }
-    
-    // Criar sessão
+
+    const contexto = await saasService.obterContextoUtilizador(utilizador.id);
     req.session.utilizador = {
       id: utilizador.id,
       nome: utilizador.nome,
-      email: utilizador.email
+      email: utilizador.email,
+      conta_id: contexto?.utilizador?.conta_id || utilizador.conta_id || null,
+      conta_nome: contexto?.utilizador?.conta_nome || null,
+      papel: contexto?.utilizador?.papel || utilizador.papel || 'membro',
+      plano: contexto?.subscricao?.plano || 'free',
+      subscricao_status: contexto?.subscricao?.status || 'active'
     };
-    
-    res.redirect('/dashboard');
+
+    const returnTo = req.session.returnTo;
+    delete req.session.returnTo;
+    res.redirect(returnTo || '/dashboard');
   } catch (err) {
     console.error('Erro no login:', err);
-    res.render('auth/login', {
-      titulo: 'Entrar',
-      erro: 'Erro ao processar o login. Tente novamente.',
-      hideFooter: true
-    });
+    res.render('auth/login', { titulo: 'Entrar', erro: 'Erro ao processar o login. Tente novamente.', hideFooter: true });
   }
 });
 
-// Página de registo
-router.get('/registar', (req, res) => {
-  if (req.session.utilizador) {
-    return res.redirect('/dashboard');
+router.get('/registar', async (req, res) => {
+  if (req.session.utilizador) return res.redirect('/dashboard');
+
+  const conviteToken = req.query.convite || '';
+  if (!conviteToken) return renderRegistar(res);
+
+  const convite = await contaService.obterConvitePorToken(conviteToken);
+  if (!convite || convite.status !== 'pendente' || new Date(convite.expira_em) < new Date()) {
+    return renderRegistar(res, { erro: 'Convite inválido ou expirado.' });
   }
-  
-  res.render('auth/registar', {
-    titulo: 'Criar Conta',
-    erro: null,
-    hideFooter: true
-  });
+
+  return renderRegistar(res, { convite, conviteToken });
 });
 
-// Processar registo
 router.post('/registar', registoLimiter, async (req, res) => {
   try {
+    const conviteToken = req.body.conviteToken || '';
     const { nome, email, password, confirmarPassword } = req.body;
-    
-    // Validações
+
     if (!nome || !email || !password) {
-      return res.render('auth/registar', {
-        titulo: 'Criar Conta',
-        erro: 'Todos os campos são obrigatórios',
-        hideFooter: true
-      });
+      return renderRegistar(res, { erro: 'Todos os campos são obrigatórios', conviteToken });
     }
-    
     if (password !== confirmarPassword) {
-      return res.render('auth/registar', {
-        titulo: 'Criar Conta',
-        erro: 'As palavras-passe não coincidem',
-        hideFooter: true
-      });
+      return renderRegistar(res, { erro: 'As palavras-passe não coincidem', conviteToken });
     }
-    
     if (password.length < 6) {
-      return res.render('auth/registar', {
-        titulo: 'Criar Conta',
-        erro: 'A palavra-passe deve ter pelo menos 6 caracteres',
-        hideFooter: true
-      });
+      return renderRegistar(res, { erro: 'A palavra-passe deve ter pelo menos 6 caracteres', conviteToken });
     }
-    
-    // Verificar se email já existe
-    const [existente] = await db.query(
-      'SELECT id FROM utilizadores WHERE email = ?',
-      [email]
-    );
-    
+
+    const [existente] = await db.query('SELECT id FROM utilizadores WHERE email = ?', [email]);
     if (existente.length > 0) {
-      return res.render('auth/registar', {
-        titulo: 'Criar Conta',
-        erro: 'Este email já está registado',
-        hideFooter: true
-      });
+      return renderRegistar(res, { erro: 'Este email já está registado', conviteToken });
     }
-    
-    // Hash da password
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Criar utilizador
+
+    let contaId;
+    let papel = 'admin';
+
+    if (conviteToken) {
+      const convite = await contaService.obterConvitePorToken(conviteToken);
+      if (!convite || convite.status !== 'pendente' || new Date(convite.expira_em) < new Date()) {
+        return renderRegistar(res, { erro: 'Convite inválido ou expirado.' });
+      }
+
+      if (convite.email.toLowerCase() !== email.toLowerCase()) {
+        return renderRegistar(res, { erro: 'Use o mesmo email do convite.', convite, conviteToken });
+      }
+
+      contaId = convite.conta_id;
+      papel = convite.papel;
+    } else {
+      const slugBase = nome
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'conta';
+      const slug = `${slugBase}-${Date.now()}`;
+
+      const [contaResultado] = await db.query('INSERT INTO contas (nome, slug) VALUES (?, ?)', [nome, slug]);
+      contaId = contaResultado.insertId;
+
+      await db.query(
+        'INSERT INTO subscricoes (conta_id, plano, status, fornecedor) VALUES (?, ?, ?, ?)',
+        [contaId, 'free', 'active', 'manual']
+      );
+    }
+
     const [resultado] = await db.query(
-      'INSERT INTO utilizadores (nome, email, password) VALUES (?, ?, ?)',
-      [nome, email, hashedPassword]
+      'INSERT INTO utilizadores (nome, email, password, conta_id, papel) VALUES (?, ?, ?, ?, ?)',
+      [nome, email, hashedPassword, contaId, papel]
     );
-    
-    // Criar sessão automaticamente
+
+    if (conviteToken) {
+      await db.query('UPDATE convites_conta SET status = ?, aceite_em = NOW() WHERE token = ?', ['aceite', conviteToken]);
+    }
+
+    const contexto = await saasService.obterContextoUtilizador(resultado.insertId);
     req.session.utilizador = {
       id: resultado.insertId,
-      nome: nome,
-      email: email
+      nome,
+      email,
+      conta_id: contaId,
+      conta_nome: contexto?.utilizador?.conta_nome || nome,
+      papel: contexto?.utilizador?.papel || papel,
+      plano: contexto?.subscricao?.plano || 'free',
+      subscricao_status: contexto?.subscricao?.status || 'active'
     };
-    
+
+    await auditService.registar({
+      contaId,
+      utilizadorId: resultado.insertId,
+      recurso: 'utilizadores',
+      acao: conviteToken ? 'aceite_convite' : 'registo',
+      recursoId: resultado.insertId,
+      detalhes: { email, papel },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
     res.redirect('/dashboard');
   } catch (err) {
     console.error('Erro no registo:', err);
-    res.render('auth/registar', {
-      titulo: 'Criar Conta',
-      erro: 'Erro ao criar conta. Tente novamente.',
-      hideFooter: true
-    });
+    renderRegistar(res, { erro: 'Erro ao criar conta. Tente novamente.' });
   }
 });
 
-// Logout
 router.get('/sair', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Erro ao terminar sessão:', err);
-    }
-    res.redirect('/');
-  });
+  req.session.destroy(() => res.redirect('/'));
 });
 
-// Página de recuperação de senha
 router.get('/recuperar-senha', (req, res) => {
-  if (req.session.utilizador) {
-    return res.redirect('/dashboard');
-  }
-  
+  if (req.session.utilizador) return res.redirect('/dashboard');
   res.render('auth/recuperar-senha', {
     titulo: 'Recuperar Palavra-passe',
     erro: null,
@@ -226,22 +226,13 @@ router.get('/recuperar-senha', (req, res) => {
   });
 });
 
-// Processar pedido de recuperação
 router.post('/recuperar-senha', recuperarLimiter, async (req, res) => {
   try {
     const { email } = req.body;
-    
-    // Buscar utilizador pelo email
-    const [utilizadores] = await db.query(
-      'SELECT id, nome, email FROM utilizadores WHERE email = ?',
-      [email]
-    );
-    
-    // Mensagem genérica para evitar enumeração de emails
+    const [utilizadores] = await db.query('SELECT id, nome, email FROM utilizadores WHERE email = ?', [email]);
     const mensagemSucesso = 'Se o email estiver registado, receberá instruções para recuperar a sua palavra-passe.';
-    
+
     if (utilizadores.length === 0) {
-      // Retornamos sucesso mesmo se o email não existir (segurança)
       return res.render('auth/recuperar-senha', {
         titulo: 'Recuperar Palavra-passe',
         erro: null,
@@ -249,42 +240,32 @@ router.post('/recuperar-senha', recuperarLimiter, async (req, res) => {
         hideFooter: true
       });
     }
-    
+
     const utilizador = utilizadores[0];
-    
-    // Gerar token único
     const token = crypto.randomBytes(32).toString('hex');
-    
-    // Token expira em 1 hora
     const expiracao = new Date(Date.now() + 60 * 60 * 1000);
-    
-    // Salvar token no banco de dados
+
     await db.query(
       'UPDATE utilizadores SET reset_token = ?, reset_token_expira = ? WHERE id = ?',
       [token, expiracao, utilizador.id]
     );
-    
-    // Obter host completo para o link
+
     const protocol = req.protocol;
     const host = `${protocol}://${req.get('host')}`;
-    
-    // Enviar email
+
     try {
       await enviarEmailRecuperacao(utilizador.email, utilizador.nome, token, host);
-      console.log(`✅ Email de recuperação enviado para: ${utilizador.email}`);
     } catch (emailError) {
       console.error('⚠️ Erro ao enviar email:', emailError.message);
-      // Em desenvolvimento, mostrar o link no console
       console.log(`🔗 Link de recuperação (dev): ${host}/auth/redefinir-senha/${token}`);
     }
-    
+
     res.render('auth/recuperar-senha', {
       titulo: 'Recuperar Palavra-passe',
       erro: null,
       sucesso: mensagemSucesso,
       hideFooter: true
     });
-    
   } catch (err) {
     console.error('Erro na recuperação de senha:', err);
     res.render('auth/recuperar-senha', {
@@ -296,17 +277,14 @@ router.post('/recuperar-senha', recuperarLimiter, async (req, res) => {
   }
 });
 
-// Página de redefinição de senha (com token)
 router.get('/redefinir-senha/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    
-    // Verificar se token existe e não expirou
     const [utilizadores] = await db.query(
       'SELECT id FROM utilizadores WHERE reset_token = ? AND reset_token_expira > NOW()',
       [token]
     );
-    
+
     if (utilizadores.length === 0) {
       return res.render('auth/redefinir-senha', {
         titulo: 'Redefinir Palavra-passe',
@@ -316,15 +294,14 @@ router.get('/redefinir-senha/:token', async (req, res) => {
         hideFooter: true
       });
     }
-    
+
     res.render('auth/redefinir-senha', {
       titulo: 'Redefinir Palavra-passe',
       erro: null,
       sucesso: null,
-      token: token,
+      token,
       hideFooter: true
     });
-    
   } catch (err) {
     console.error('Erro ao verificar token:', err);
     res.render('auth/redefinir-senha', {
@@ -337,49 +314,35 @@ router.get('/redefinir-senha/:token', async (req, res) => {
   }
 });
 
-// Processar redefinição de senha
 router.post('/redefinir-senha/:token', async (req, res) => {
   try {
     const { token } = req.params;
     const { password, confirmarPassword } = req.body;
-    
-    // Validações
+
     if (!password || !confirmarPassword) {
       return res.render('auth/redefinir-senha', {
         titulo: 'Redefinir Palavra-passe',
         erro: 'Todos os campos são obrigatórios',
         sucesso: null,
-        token: token,
+        token,
         hideFooter: true
       });
     }
-    
     if (password !== confirmarPassword) {
       return res.render('auth/redefinir-senha', {
         titulo: 'Redefinir Palavra-passe',
         erro: 'As palavras-passe não coincidem',
         sucesso: null,
-        token: token,
+        token,
         hideFooter: true
       });
     }
-    
-    if (password.length < 6) {
-      return res.render('auth/redefinir-senha', {
-        titulo: 'Redefinir Palavra-passe',
-        erro: 'A palavra-passe deve ter pelo menos 6 caracteres',
-        sucesso: null,
-        token: token,
-        hideFooter: true
-      });
-    }
-    
-    // Verificar token novamente
+
     const [utilizadores] = await db.query(
       'SELECT id FROM utilizadores WHERE reset_token = ? AND reset_token_expira > NOW()',
       [token]
     );
-    
+
     if (utilizadores.length === 0) {
       return res.render('auth/redefinir-senha', {
         titulo: 'Redefinir Palavra-passe',
@@ -389,18 +352,13 @@ router.post('/redefinir-senha/:token', async (req, res) => {
         hideFooter: true
       });
     }
-    
-    const utilizador = utilizadores[0];
-    
-    // Hash da nova password
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Atualizar password e limpar token
     await db.query(
       'UPDATE utilizadores SET password = ?, reset_token = NULL, reset_token_expira = NULL WHERE id = ?',
-      [hashedPassword, utilizador.id]
+      [hashedPassword, utilizadores[0].id]
     );
-    
+
     res.render('auth/redefinir-senha', {
       titulo: 'Redefinir Palavra-passe',
       erro: null,
@@ -408,7 +366,6 @@ router.post('/redefinir-senha/:token', async (req, res) => {
       token: null,
       hideFooter: true
     });
-    
   } catch (err) {
     console.error('Erro ao redefinir senha:', err);
     res.render('auth/redefinir-senha', {
@@ -421,7 +378,6 @@ router.post('/redefinir-senha/:token', async (req, res) => {
   }
 });
 
-// Eliminar conta
 router.post('/eliminar-conta', async (req, res, next) => {
   try {
     if (!req.session.utilizador) {
@@ -429,13 +385,13 @@ router.post('/eliminar-conta', async (req, res, next) => {
     }
 
     const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const { password } = req.body;
 
     if (!password) {
       return res.status(400).json({ success: false, message: 'A palavra-passe é obrigatória.' });
     }
 
-    // Verificar password
     const [rows] = await db.query('SELECT password FROM utilizadores WHERE id = ?', [utilizadorId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Utilizador não encontrado.' });
@@ -446,12 +402,19 @@ router.post('/eliminar-conta', async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Palavra-passe incorreta.' });
     }
 
-    // Eliminar dados na ordem correta (foreign keys)
     await db.query('DELETE FROM transacoes WHERE utilizador_id = ?', [utilizadorId]);
     await db.query('DELETE FROM categorias WHERE utilizador_id = ?', [utilizadorId]);
+    await db.query('DELETE FROM orcamentos WHERE utilizador_id = ?', [utilizadorId]);
     await db.query('DELETE FROM utilizadores WHERE id = ?', [utilizadorId]);
 
-    // Destruir sessão
+    if (contaId) {
+      const [restantes] = await db.query('SELECT COUNT(*) as total FROM utilizadores WHERE conta_id = ?', [contaId]);
+      if ((restantes[0].total || 0) === 0) {
+        await db.query('DELETE FROM subscricoes WHERE conta_id = ?', [contaId]);
+        await db.query('DELETE FROM contas WHERE id = ?', [contaId]);
+      }
+    }
+
     req.session.destroy(() => {
       res.json({ success: true, message: 'Conta eliminada com sucesso.' });
     });

@@ -2,17 +2,20 @@ const express = require('express');
 const router = express.Router();
 const orcamentosService = require('../services/orcamentosService');
 const categoriasService = require('../services/categoriasService');
+const saasService = require('../services/saasService');
+const auditService = require('../services/auditService');
 
 // Listar orçamentos
 router.get('/', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const hoje = new Date();
     const mes = parseInt(req.query.mes) || (hoje.getMonth() + 1);
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
 
-    const orcamentos = await orcamentosService.listar(utilizadorId, mes, ano);
-    const categorias = await categoriasService.listarSimples(utilizadorId);
+    const orcamentos = await orcamentosService.listar(contaId, mes, ano);
+    const categorias = await categoriasService.listarSimples(contaId);
     const categoriasDespesa = categorias.filter(c => c.tipo === 'despesa');
 
     const meses = [
@@ -43,6 +46,7 @@ router.get('/', async (req, res, next) => {
 // Criar orçamento (API para modal)
 router.post('/api/criar', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const { categoria_id, limite, mes, ano } = req.body;
 
@@ -54,9 +58,23 @@ router.post('/api/criar', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'O limite deve ser um valor positivo.' });
     }
 
-    await orcamentosService.criar(utilizadorId, { categoria_id, limite, mes, ano });
+    await saasService.verificarLimiteOrcamentos(utilizadorId, parseInt(mes), parseInt(ano));
+
+    await orcamentosService.criar(contaId, utilizadorId, { categoria_id, limite, mes, ano });
+    await auditService.registar({
+      contaId,
+      utilizadorId,
+      recurso: 'orcamentos',
+      acao: 'criar',
+      detalhes: { categoria_id, limite, mes, ano },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     res.json({ success: true, message: 'Orçamento criado com sucesso!' });
   } catch (err) {
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
     next(err);
   }
 });
@@ -64,17 +82,28 @@ router.post('/api/criar', async (req, res, next) => {
 // Atualizar orçamento (API)
 router.post('/api/:id/atualizar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const { limite } = req.body;
 
     if (!limite || parseFloat(limite) <= 0) {
       return res.status(400).json({ success: false, message: 'O limite deve ser um valor positivo.' });
     }
 
-    const resultado = await orcamentosService.atualizar(req.params.id, utilizadorId, { limite });
+    const resultado = await orcamentosService.atualizar(req.params.id, contaId, { limite });
     if (resultado.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Orçamento não encontrado.' });
     }
+
+    await auditService.registar({
+      contaId,
+      utilizadorId: req.session.utilizador.id,
+      recurso: 'orcamentos',
+      acao: 'editar',
+      recursoId: req.params.id,
+      detalhes: { limite },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
 
     res.json({ success: true, message: 'Orçamento atualizado com sucesso!' });
   } catch (err) {
@@ -85,12 +114,21 @@ router.post('/api/:id/atualizar', async (req, res, next) => {
 // Eliminar orçamento
 router.post('/:id/eliminar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
-    const resultado = await orcamentosService.eliminar(req.params.id, utilizadorId);
+    const contaId = req.session.utilizador.conta_id;
+    const resultado = await orcamentosService.eliminar(req.params.id, contaId);
 
     if (resultado.affectedRows === 0) {
       req.session.erro = 'Orçamento não encontrado.';
     } else {
+      await auditService.registar({
+        contaId,
+        utilizadorId: req.session.utilizador.id,
+        recurso: 'orcamentos',
+        acao: 'eliminar',
+        recursoId: req.params.id,
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
       req.session.sucesso = 'Orçamento eliminado com sucesso!';
     }
 
@@ -105,14 +143,26 @@ router.post('/:id/eliminar', async (req, res, next) => {
 // Copiar orçamentos do mês anterior
 router.post('/copiar-mes', async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const { mesDestino, anoDestino, mesOrigem, anoOrigem } = req.body;
 
     const total = await orcamentosService.copiarMes(
-      utilizadorId, 
+      contaId,
+      utilizadorId,
       parseInt(mesOrigem), parseInt(anoOrigem),
       parseInt(mesDestino), parseInt(anoDestino)
     );
+
+    await auditService.registar({
+      contaId,
+      utilizadorId,
+      recurso: 'orcamentos',
+      acao: 'copiar_mes',
+      detalhes: { mesOrigem, anoOrigem, mesDestino, anoDestino, total },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
 
     req.session.sucesso = `${total} orçamento(s) copiado(s) com sucesso!`;
     res.redirect(`/orcamentos?mes=${mesDestino}&ano=${anoDestino}`);

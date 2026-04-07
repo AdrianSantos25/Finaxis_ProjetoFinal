@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const relatoriosService = require('../services/relatoriosService');
+const saasService = require('../services/saasService');
 
 // Configurar multer para upload em memória
 const upload = multer({
@@ -79,6 +80,7 @@ router.get('/exportar/csv', async (req, res, next) => {
 router.get('/exportar/excel', async (req, res, next) => {
   try {
     const utilizadorId = req.session.utilizador.id;
+    await saasService.verificarFuncionalidade(utilizadorId, 'exportExcel');
     const ano = parseInt(req.query.ano) || new Date().getFullYear();
 
     const buffer = await relatoriosService.exportarExcel(utilizadorId, ano);
@@ -87,6 +89,10 @@ router.get('/exportar/excel', async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename=relatorio_${ano}.xlsx`);
     res.send(buffer);
   } catch (err) {
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      req.session.erro = err.message;
+      return res.redirect('/relatorios');
+    }
     next(err);
   }
 });
@@ -95,6 +101,7 @@ router.get('/exportar/excel', async (req, res, next) => {
 router.get('/exportar/pdf', async (req, res, next) => {
   try {
     const utilizadorId = req.session.utilizador.id;
+    await saasService.verificarFuncionalidade(utilizadorId, 'exportPdf');
     const ano = parseInt(req.query.ano) || new Date().getFullYear();
 
     const buffer = await relatoriosService.exportarPDF(utilizadorId, ano);
@@ -103,6 +110,10 @@ router.get('/exportar/pdf', async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename=relatorio_${ano}.pdf`);
     res.send(buffer);
   } catch (err) {
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      req.session.erro = err.message;
+      return res.redirect('/relatorios');
+    }
     next(err);
   }
 });
@@ -111,6 +122,7 @@ router.get('/exportar/pdf', async (req, res, next) => {
 router.post('/importar', upload.single('ficheiro'), async (req, res, next) => {
   try {
     const utilizadorId = req.session.utilizador.id;
+    await saasService.verificarFuncionalidade(utilizadorId, 'importDados');
 
     if (!req.file) {
       req.session.erro = 'Nenhum ficheiro selecionado.';
@@ -143,6 +155,12 @@ router.post('/importar', upload.single('ficheiro'), async (req, res, next) => {
       req.session.erro = err.message;
       return res.redirect('/relatorios');
     }
+
+    if (err.statusCode === 403 || err.statusCode === 402) {
+      req.session.erro = err.message;
+      return res.redirect('/relatorios');
+    }
+
     next(err);
   }
 });

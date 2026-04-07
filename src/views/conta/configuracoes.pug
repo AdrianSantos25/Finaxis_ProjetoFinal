@@ -1,0 +1,130 @@
+extends ../layout
+
+block content
+  - const contaNome = conta && conta.nome ? conta.nome : ''
+  - const contaMoeda = conta && conta.moeda ? conta.moeda : 'EUR'
+  - const contaTimezone = conta && conta.timezone ? conta.timezone : 'Europe/Lisbon'
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3.mb-0
+      i.bi.bi-gear.me-2
+      | Configurações da Conta
+
+  if sucesso
+    .alert.alert-success.alert-dismissible.fade.show
+      | #{sucesso}
+      button.btn-close(type='button' data-bs-dismiss='alert')
+
+  if erro
+    .alert.alert-danger.alert-dismissible.fade.show
+      | #{erro}
+      button.btn-close(type='button' data-bs-dismiss='alert')
+
+  .row.g-4
+    .col-lg-6
+      .card.shadow-sm
+        .card-header
+          h5.mb-0 Dados da Conta
+        .card-body
+          form(method='POST' action='/conta/configuracoes')
+            .mb-3
+              label.form-label Nome da empresa/conta
+              input.form-control(type='text' name='nome' required value=contaNome)
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label Moeda
+                  select.form-select(name='moeda')
+                    option(value='EUR' selected=contaMoeda === 'EUR') EUR
+                    option(value='USD' selected=contaMoeda === 'USD') USD
+                    option(value='BRL' selected=contaMoeda === 'BRL') BRL
+              .col-md-6
+                .mb-3
+                  label.form-label Timezone
+                  select.form-select(name='timezone')
+                    option(value='Europe/Lisbon' selected=contaTimezone === 'Europe/Lisbon') Europe/Lisbon
+                    option(value='America/Sao_Paulo' selected=contaTimezone === 'America/Sao_Paulo') America/Sao_Paulo
+                    option(value='UTC' selected=contaTimezone === 'UTC') UTC
+            if isAdmin
+              button.btn.btn-primary(type='submit') Guardar Configurações
+            else
+              .alert.alert-warning.small Só administradores podem editar configurações.
+
+    .col-lg-6
+      .card.shadow-sm
+        .card-header
+          h5.mb-0 Equipa
+        .card-body
+          if membros && membros.length > 0
+            ul.list-group.list-group-flush
+              each m in membros
+                li.list-group-item.d-flex.justify-content-between.align-items-center
+                  div
+                    strong #{m.nome}
+                    div.small.text-muted #{m.email}
+                  span.badge(class=m.papel === 'admin' ? 'bg-primary' : 'bg-secondary') #{m.papel}
+          else
+            p.text-muted.mb-0 Sem membros.
+
+          if isAdmin
+            hr
+            h6 Convidar membro
+            form(method='POST' action='/conta/convites')
+              .mb-2
+                input.form-control(type='email' name='email' placeholder='email@empresa.com' required)
+              .mb-2
+                select.form-select(name='papel')
+                  option(value='membro') Membro
+                  option(value='admin') Admin
+              button.btn.btn-outline-primary(type='submit') Enviar convite
+
+  .row.g-4.mt-1
+    .col-lg-6
+      .card.shadow-sm
+        .card-header
+          h5.mb-0 Convites
+        .card-body
+          if !convites || convites.length === 0
+            p.text-muted.mb-0 Sem convites.
+          else
+            .table-responsive
+              table.table.table-sm
+                thead
+                  tr
+                    th Email
+                    th Papel
+                    th Estado
+                    th
+                tbody
+                  each c in convites
+                    tr
+                      td #{c.email}
+                      td #{c.papel}
+                      td #{c.status}
+                      td
+                        if isAdmin && c.status === 'pendente'
+                          form(method='POST' action='/conta/convites/' + c.id + '/cancelar')
+                            button.btn.btn-sm.btn-outline-danger(type='submit') Cancelar
+
+    .col-lg-6
+      .card.shadow-sm
+        .card-header
+          h5.mb-0 Auditoria Recente
+        .card-body
+          if !auditoria || auditoria.length === 0
+            p.text-muted.mb-0 Sem logs de auditoria.
+          else
+            .table-responsive
+              table.table.table-sm
+                thead
+                  tr
+                    th Data
+                    th Ação
+                    th Recurso
+                    th Utilizador
+                tbody
+                  each a in auditoria
+                    tr
+                      td #{new Date(a.criado_em).toLocaleString('pt-PT')}
+                      td #{a.acao}
+                      td #{a.recurso}
+                      td #{a.utilizador_nome || '-'}

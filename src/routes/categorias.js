@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const categoriasService = require('../services/categoriasService');
+const auditService = require('../services/auditService');
 const { validarCategoria, validarCategoriaAPI } = require('../middlewares/validacao');
 
 // Listar categorias
 router.get('/', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
-    const categorias = await categoriasService.listar(utilizadorId);
+    const contaId = req.session.utilizador.conta_id;
+    const categorias = await categoriasService.listar(contaId);
 
     res.render('categorias/lista', {
       titulo: 'Categorias',
@@ -30,8 +31,18 @@ router.get('/nova', (req, res) => {
 // Criar categoria (formulário)
 router.post('/', validarCategoria, async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
-    await categoriasService.criar(utilizadorId, req.body);
+    await categoriasService.criar(contaId, utilizadorId, req.body);
+    await auditService.registar({
+      contaId,
+      utilizadorId,
+      recurso: 'categorias',
+      acao: 'criar',
+      detalhes: { nome: req.body.nome, tipo: req.body.tipo },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     req.session.sucesso = 'Categoria criada com sucesso!';
     res.redirect('/categorias');
   } catch (err) {
@@ -42,10 +53,11 @@ router.post('/', validarCategoria, async (req, res, next) => {
 // API para criar categoria via AJAX (modal)
 router.post('/api/criar', validarCategoriaAPI, async (req, res, next) => {
   try {
+    const contaId = req.session.utilizador.conta_id;
     const utilizadorId = req.session.utilizador.id;
     const { nome, tipo, cor } = req.body;
 
-    const resultado = await categoriasService.criar(utilizadorId, req.body);
+    const resultado = await categoriasService.criar(contaId, utilizadorId, req.body);
 
     res.json({
       success: true,
@@ -65,8 +77,8 @@ router.post('/api/criar', validarCategoriaAPI, async (req, res, next) => {
 // Formulário editar categoria
 router.get('/:id/editar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
-    const categoria = await categoriasService.buscarPorId(req.params.id, utilizadorId);
+    const contaId = req.session.utilizador.conta_id;
+    const categoria = await categoriasService.buscarPorId(req.params.id, contaId);
 
     if (!categoria) {
       return res.redirect('/categorias');
@@ -85,17 +97,27 @@ router.get('/:id/editar', async (req, res, next) => {
 // Atualizar categoria
 router.post('/:id', validarCategoria, async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const categoriaId = req.params.id;
 
     // Verificar se pertence ao utilizador
-    const pertence = await categoriasService.pertenceAoUtilizador(categoriaId, utilizadorId);
+    const pertence = await categoriasService.pertenceAoUtilizador(categoriaId, contaId);
     if (!pertence) {
       req.session.erro = 'Categoria não encontrada ou não pode ser editada.';
       return res.redirect('/categorias');
     }
 
-    await categoriasService.atualizar(categoriaId, utilizadorId, req.body);
+    await categoriasService.atualizar(categoriaId, contaId, req.body);
+    await auditService.registar({
+      contaId,
+      utilizadorId: req.session.utilizador.id,
+      recurso: 'categorias',
+      acao: 'editar',
+      recursoId: categoriaId,
+      detalhes: { nome: req.body.nome, tipo: req.body.tipo },
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     req.session.sucesso = 'Categoria atualizada com sucesso!';
     res.redirect('/categorias');
   } catch (err) {
@@ -106,11 +128,11 @@ router.post('/:id', validarCategoria, async (req, res, next) => {
 // Eliminar categoria
 router.post('/:id/eliminar', async (req, res, next) => {
   try {
-    const utilizadorId = req.session.utilizador.id;
+    const contaId = req.session.utilizador.conta_id;
     const categoriaId = req.params.id;
 
     // Verificar se pertence ao utilizador
-    const pertence = await categoriasService.pertenceAoUtilizador(categoriaId, utilizadorId);
+    const pertence = await categoriasService.pertenceAoUtilizador(categoriaId, contaId);
     if (!pertence) {
       req.session.erro = 'Categoria não encontrada ou não pode ser eliminada.';
       return res.redirect('/categorias');
@@ -123,7 +145,16 @@ router.post('/:id/eliminar', async (req, res, next) => {
       return res.redirect('/categorias');
     }
 
-    await categoriasService.eliminar(categoriaId, utilizadorId);
+    await categoriasService.eliminar(categoriaId, contaId);
+    await auditService.registar({
+      contaId,
+      utilizadorId: req.session.utilizador.id,
+      recurso: 'categorias',
+      acao: 'eliminar',
+      recursoId: categoriaId,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     req.session.sucesso = 'Categoria eliminada com sucesso!';
     res.redirect('/categorias');
   } catch (err) {

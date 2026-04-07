@@ -5,7 +5,8 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "node --watch src/app.js"
+    "dev": "node --watch src/app.js",
+    "backup:db": "powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1"
   },
   "keywords": [
     "financeiro",
@@ -29,6 +30,7 @@
     "nodemailer": "^8.0.1",
     "pdfkit": "^0.17.2",
     "pug": "^3.0.3",
+    "stripe": "^17.7.0",
     "xlsx": "^0.18.5"
   }
 }

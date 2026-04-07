@@ -1,0 +1,121 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    div
+      h1.h3.mb-1
+        i.bi.bi-credit-card-2-front.me-2
+        | Plano e Faturação
+      p.text-muted.mb-0 Gere o seu plano, trial e subscrição.
+
+  if sucesso
+    .alert.alert-success.alert-dismissible.fade.show
+      i.bi.bi-check-circle.me-2
+      | #{sucesso}
+      button.btn-close(type="button" data-bs-dismiss="alert")
+
+  if erro
+    .alert.alert-danger.alert-dismissible.fade.show
+      i.bi.bi-exclamation-circle.me-2
+      | #{erro}
+      button.btn-close(type="button" data-bs-dismiss="alert")
+
+  if checkoutStatus === 'success'
+    .alert.alert-success
+      i.bi.bi-stars.me-2
+      | Checkout concluído. A subscrição será sincronizada automaticamente.
+
+  if checkoutStatus === 'cancel'
+    .alert.alert-warning
+      i.bi.bi-x-circle.me-2
+      | Checkout cancelado. Nenhuma alteração foi aplicada.
+
+  - const planoAtualConta = (contexto && contexto.subscricao && contexto.subscricao.plano) || 'free'
+  - const statusAtualConta = (contexto && contexto.subscricao && contexto.subscricao.status) || 'active'
+  - const contaNome = (contexto && contexto.utilizador && contexto.utilizador.conta_nome) || 'Conta'
+
+  .card.border-0.shadow-sm.mb-4
+    .card-body
+      .row.g-3.align-items-center
+        .col-md-8
+          h5.mb-1 Estado Atual
+          p.text-muted.mb-0 Conta: #{contaNome}
+        .col-md-4.text-md-end
+          span.badge.bg-dark.me-2 Plano #{String(planoAtualConta).toUpperCase()}
+          span.badge(class=statusAtualConta === 'active' ? 'bg-success' : (statusAtualConta === 'trialing' ? 'bg-info' : 'bg-warning')) #{statusAtualConta}
+
+  .row.g-4
+    .col-lg-4
+      .card.h-100.border-0.shadow-sm(class=planoAtualConta === 'free' ? 'border border-primary' : '')
+        .card-body
+          h5 Free
+          p.text-muted Plano de entrada
+          ul.small
+            li 100 transações por mês
+            li 10 orçamentos por mês
+            li Exportar CSV
+          if planoAtualConta !== 'free'
+            form(method="POST" action="/billing/downgrade")
+              button.btn.btn-outline-secondary.w-100(type="submit") Downgrade para Free
+          else
+            button.btn.btn-primary.w-100(type="button" disabled) Plano Atual
+
+    .col-lg-4
+      .card.h-100.border-0.shadow-sm(class=planoAtualConta === 'pro' ? 'border border-success' : '')
+        .card-body
+          h5 Pro
+          p.text-muted Ideal para uso avançado
+          ul.small
+            li Transações ilimitadas
+            li Orçamentos ilimitados
+            li Importar dados
+            li Exportar Excel e PDF
+            li Trial de 14 dias (1x)
+          if planoAtualConta !== 'pro'
+            form(method="POST" action="/billing/checkout")
+              input(type="hidden" name="plano" value="pro")
+              button.btn.btn-success.w-100(type="submit") Escolher Pro
+          else
+            button.btn.btn-success.w-100(type="button" disabled) Plano Atual
+
+    .col-lg-4
+      .card.h-100.border-0.shadow-sm(class=planoAtualConta === 'business' ? 'border border-warning' : '')
+        .card-body
+          h5 Business
+          p.text-muted Para equipas e operações intensivas
+          ul.small
+            li Tudo do Pro
+            li Prioridade de suporte
+            li Recursos para escala
+            li Trial de 14 dias (1x)
+          if planoAtualConta !== 'business'
+            form(method="POST" action="/billing/checkout")
+              input(type="hidden" name="plano" value="business")
+              button.btn.btn-warning.w-100(type="submit") Escolher Business
+          else
+            button.btn.btn-warning.w-100(type="button" disabled) Plano Atual
+
+  .card.border-0.shadow-sm.mt-4
+    .card-header.bg-white
+      h6.mb-0 Histórico de Subscrições
+    .card-body.p-0
+      if !historico || historico.length === 0
+        p.text-muted.p-3.mb-0 Sem histórico disponível.
+      else
+        .table-responsive
+          table.table.table-sm.mb-0
+            thead
+              tr
+                th.ps-3 Plano
+                th Estado
+                th Fornecedor
+                th Início
+                th Fim
+            tbody
+              each s in historico
+                tr
+                  td.ps-3= String(s.plano || '').toUpperCase()
+                  td= s.status
+                  td= s.fornecedor
+                  td= s.inicio ? new Date(s.inicio).toLocaleDateString('pt-PT') : '-'
+                  td= s.fim ? new Date(s.fim).toLocaleDateString('pt-PT') : '-'

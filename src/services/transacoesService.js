@@ -4,16 +4,16 @@ class TransacoesService {
   /**
    * Listar transações com filtros e paginação
    */
-  async listar(utilizadorId, { tipo, categoria, pesquisa, dataInicio, dataFim, pagina = 1, limite = 20 }) {
-    let queryCount = 'SELECT COUNT(*) as total FROM transacoes t WHERE t.utilizador_id = ?';
+  async listar(contaId, { tipo, categoria, pesquisa, dataInicio, dataFim, pagina = 1, limite = 20 }) {
+    let queryCount = 'SELECT COUNT(*) as total FROM transacoes t WHERE t.conta_id = ?';
     let query = `
       SELECT t.*, c.nome as categoria_nome, c.cor as categoria_cor
       FROM transacoes t
       LEFT JOIN categorias c ON t.categoria_id = c.id
-      WHERE t.utilizador_id = ?
+      WHERE t.conta_id = ?
     `;
-    const params = [utilizadorId];
-    const countParams = [utilizadorId];
+    const params = [contaId];
+    const countParams = [contaId];
 
     if (tipo) {
       query += ' AND t.tipo = ?';
@@ -77,10 +77,10 @@ class TransacoesService {
   /**
    * Buscar transação por ID
    */
-  async buscarPorId(transacaoId, utilizadorId) {
+  async buscarPorId(transacaoId, contaId) {
     const [transacoes] = await db.query(
-      'SELECT * FROM transacoes WHERE id = ? AND utilizador_id = ?',
-      [transacaoId, utilizadorId]
+      'SELECT * FROM transacoes WHERE id = ? AND conta_id = ?',
+      [transacaoId, contaId]
     );
     return transacoes[0] || null;
   }
@@ -88,10 +88,10 @@ class TransacoesService {
   /**
    * Criar nova transação
    */
-  async criar(utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
+  async criar(contaId, utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
     const [resultado] = await db.query(
-      'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, recorrente, frequencia, ultima_geracao, notas, comprovativo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, utilizadorId, recorrente ? 1 : 0, recorrente ? frequencia : null, recorrente ? data : null, notas || null, comprovativo || null]
+      'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, conta_id, recorrente, frequencia, ultima_geracao, notas, comprovativo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, utilizadorId, contaId, recorrente ? 1 : 0, recorrente ? frequencia : null, recorrente ? data : null, notas || null, comprovativo || null]
     );
     return resultado;
   }
@@ -99,10 +99,10 @@ class TransacoesService {
   /**
    * Atualizar transação existente
    */
-  async atualizar(transacaoId, utilizadorId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
+  async atualizar(transacaoId, contaId, { descricao, valor, tipo, categoria_id, data, recorrente, frequencia, notas, comprovativo }) {
     const [resultado] = await db.query(
-      'UPDATE transacoes SET descricao = ?, valor = ?, tipo = ?, categoria_id = ?, data = ?, recorrente = ?, frequencia = ?, notas = ?, comprovativo = ? WHERE id = ? AND utilizador_id = ?',
-      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, recorrente ? 1 : 0, recorrente ? frequencia : null, notas || null, comprovativo || null, transacaoId, utilizadorId]
+      'UPDATE transacoes SET descricao = ?, valor = ?, tipo = ?, categoria_id = ?, data = ?, recorrente = ?, frequencia = ?, notas = ?, comprovativo = ? WHERE id = ? AND conta_id = ?',
+      [descricao.trim(), parseFloat(valor), tipo, categoria_id || null, data, recorrente ? 1 : 0, recorrente ? frequencia : null, notas || null, comprovativo || null, transacaoId, contaId]
     );
     return resultado;
   }
@@ -110,10 +110,10 @@ class TransacoesService {
   /**
    * Eliminar transação
    */
-  async eliminar(transacaoId, utilizadorId) {
+  async eliminar(transacaoId, contaId) {
     const [resultado] = await db.query(
-      'DELETE FROM transacoes WHERE id = ? AND utilizador_id = ?',
-      [transacaoId, utilizadorId]
+      'DELETE FROM transacoes WHERE id = ? AND conta_id = ?',
+      [transacaoId, contaId]
     );
     return resultado;
   }
@@ -121,14 +121,14 @@ class TransacoesService {
   /**
    * Processar transações recorrentes - gerar novas transações pendentes
    */
-  async processarRecorrentes(utilizadorId) {
+  async processarRecorrentes(contaId, utilizadorId) {
     const hoje = new Date();
     const hojeStr = hoje.toISOString().split('T')[0];
 
     // Buscar transações recorrentes do utilizador
     const [recorrentes] = await db.query(
-      'SELECT * FROM transacoes WHERE recorrente = 1 AND utilizador_id = ? AND ultima_geracao IS NOT NULL',
-      [utilizadorId]
+      'SELECT * FROM transacoes WHERE recorrente = 1 AND conta_id = ? AND ultima_geracao IS NOT NULL',
+      [contaId]
     );
 
     for (const trans of recorrentes) {
@@ -141,14 +141,14 @@ class TransacoesService {
         
         // Verificar se já existe transação para esta data
         const [existente] = await db.query(
-          'SELECT id FROM transacoes WHERE descricao = ? AND valor = ? AND tipo = ? AND data = ? AND utilizador_id = ? AND id != ?',
-          [trans.descricao, trans.valor, trans.tipo, proximaDataStr, utilizadorId, trans.id]
+          'SELECT id FROM transacoes WHERE descricao = ? AND valor = ? AND tipo = ? AND data = ? AND conta_id = ? AND id != ?',
+          [trans.descricao, trans.valor, trans.tipo, proximaDataStr, contaId, trans.id]
         );
 
         if (existente.length === 0) {
           await db.query(
-            'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, recorrente, frequencia, ultima_geracao) VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL)',
-            [trans.descricao, trans.valor, trans.tipo, trans.categoria_id, proximaDataStr, utilizadorId]
+            'INSERT INTO transacoes (descricao, valor, tipo, categoria_id, data, utilizador_id, conta_id, recorrente, frequencia, ultima_geracao) VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL)',
+            [trans.descricao, trans.valor, trans.tipo, trans.categoria_id, proximaDataStr, utilizadorId || trans.utilizador_id, contaId]
           );
         }
 

@@ -65,7 +65,7 @@ npm start
 
 5. **Acesse no navegador:**
 ```
-http://localhost:3000
+http://localhost:3001
 ```
 
 ---
@@ -74,7 +74,7 @@ http://localhost:3000
 
 ### 1. Criar uma Conta
 
-1. Acesse `http://localhost:3000`
+1. Acesse `http://localhost:3001`
 2. Clique em **"Criar Conta Grátis"** ou **"Criar Conta"** no menu
 3. Preencha os dados:
    - **Nome:** O seu nome completo
@@ -86,7 +86,7 @@ http://localhost:3000
 
 ### 2. Fazer Login
 
-1. Acesse `http://localhost:3000`
+1. Acesse `http://localhost:3001`
 2. Clique em **"Entrar"** no menu
 3. Insira o seu **Email** e **Palavra-passe**
 4. Clique em **"Entrar"**
@@ -166,6 +166,22 @@ Os relatórios permitem analisar as suas finanças ao longo do tempo.
 
 ## ✨ Funcionalidades
 
+### SaaS e Faturação
+- Planos: Free, Pro e Business
+- Checkout Stripe para upgrade de plano
+- Downgrade para Free diretamente na área de faturação
+- Trial de 14 dias (uma vez por conta)
+- Webhook Stripe para sincronizar plano/status automaticamente
+- Downgrade automático para Free no fim do trial
+
+### Equipas e Governança
+- Multi-utilizador por conta com perfis `admin` e `membro`
+- Convites por email para entrada na conta partilhada
+- Página de configurações da conta (`/conta/configuracoes`)
+- Auditoria de ações críticas (criar/editar/eliminar)
+- Logs estruturados JSON por pedido HTTP
+- Script de backup da base de dados
+
 ### Dashboard
 - Resumo financeiro mensal (receitas, despesas, saldo acumulado)
 - Últimas transações
@@ -193,6 +209,42 @@ Os relatórios permitem analisar as suas finanças ao longo do tempo.
 - Palavras-passe encriptadas com bcrypt
 - Sessões seguras com express-session
 - Dados isolados por utilizador
+
+## 💳 Stripe (Billing)
+
+### Variáveis necessárias
+Configure no ficheiro .env:
+
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PRICE_PRO
+- STRIPE_PRICE_BUSINESS
+- APP_BASE_URL (ex: http://localhost:3001)
+
+### Fluxo implementado
+- A página Plano e Faturação está em /billing
+- Upgrade para Pro/Business via checkout Stripe
+- Webhook em /webhooks/stripe atualiza automaticamente plano e status na tabela subscricoes
+- Trial de 14 dias aplicado na primeira subscrição paga da conta
+
+### Teste local do webhook
+Com Stripe CLI:
+
+1. stripe login
+2. stripe listen --forward-to localhost:3001/webhooks/stripe
+3. Copie o signing secret gerado para STRIPE_WEBHOOK_SECRET
+
+## 🧰 Operação
+
+### Backup da base de dados
+Executar:
+
+```bash
+npm run backup:db
+```
+
+O ficheiro é gerado em `data/backups/`.
 
 ## 🎨 Interface
 
