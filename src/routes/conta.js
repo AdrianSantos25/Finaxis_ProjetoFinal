@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const contaService = require('../services/contaService');
 const auditService = require('../services/auditService');
+const analyticsService = require('../services/analyticsService');
 const { verificarAdminConta } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -25,6 +26,15 @@ router.get('/configuracoes', async (req, res, next) => {
 
     const totalAdmins = membros.filter((m) => m.papel === 'admin').length;
     const totalMembros = membros.length;
+    let funnel7Dias = null;
+    let funnel30Dias = null;
+
+    if (req.session.utilizador.papel === 'admin') {
+      [funnel7Dias, funnel30Dias] = await Promise.all([
+        analyticsService.obterResumoFunnelPorPeriodo({ dias: 7 }),
+        analyticsService.obterResumoFunnelPorPeriodo({ dias: 30 })
+      ]);
+    }
 
     res.render('conta/configuracoes', {
       titulo: 'Configurações da Conta',
@@ -35,7 +45,24 @@ router.get('/configuracoes', async (req, res, next) => {
       isAdmin: req.session.utilizador.papel === 'admin',
       utilizadorAtualId,
       totalAdmins,
-      totalMembros
+      totalMembros,
+      funnel7Dias,
+      funnel30Dias
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/kpis/funil', verificarAdminConta, async (req, res, next) => {
+  try {
+    const periodo = Number.parseInt(req.query.periodo, 10);
+    const dias = [7, 30].includes(periodo) ? periodo : 7;
+    const resumo = await analyticsService.obterResumoFunnelPorPeriodo({ dias });
+
+    res.json({
+      success: true,
+      ...resumo
     });
   } catch (err) {
     next(err);

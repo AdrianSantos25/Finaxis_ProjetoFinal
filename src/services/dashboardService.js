@@ -1,4 +1,6 @@
 const db = require('../database');
+const transacoesService = require('./transacoesService');
+const metasService = require('./metasService');
 
 class DashboardService {
   /**
@@ -17,7 +19,9 @@ class DashboardService {
       [despesasAcumuladasRows],
       [ultimasTransacoes],
       [despesasPorCategoria],
-      [categorias]
+      [categorias],
+      metasResumo,
+      alertasInteligentes
     ] = await Promise.all([
       // Total de receitas do mês
       db.query(
@@ -62,7 +66,9 @@ class DashboardService {
       db.query(
         'SELECT * FROM categorias WHERE conta_id = ? OR utilizador_id IS NULL ORDER BY tipo, nome',
         [contaId]
-      )
+      ),
+      metasService.obterResumoDashboard(contaId),
+      this.obterAlertasInteligentes(contaId)
     ]);
 
     const totalReceitas = parseFloat(receitasRows[0].total) || 0;
@@ -77,8 +83,77 @@ class DashboardService {
       saldo,
       ultimasTransacoes,
       despesasPorCategoria,
-      categorias
+      categorias,
+      metasResumo,
+      alertasInteligentes
     };
+  }
+
+  async obterAlertasInteligentes(contaId) {
+    const alertas = [];
+    const hoje = new Date();
+    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    const hojeStr = hoje.toISOString().split('T')[0];
+    const fimMesStr = fimMes.toISOString().split('T')[0];
+
+    const [[saldoAteHojeRows], [saldoMesRows], recorrentesProximos] = await Promise.all([
+      db.query(
+        `SELECT
+            COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitas,
+            COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesas
+         FROM transacoes
+         WHERE conta_id = ? AND data <= ?`,
+        [contaId, hojeStr]
+      ),
+      db.query(
+        `SELECT
+            COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitas,
+            COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesas
+         FROM transacoes
+         WHERE conta_id = ? AND data BETWEEN ? AND ?`,
+        [contaId, hojeStr, fimMesStr]
+      ),
+      transacoesService.listarRecorrentesProximas(contaId, 30)
+    ]);
+
+    const saldoAteHoje = (parseFloat(saldoAteHojeRows[0].receitas) || 0) - (parseFloat(saldoAteHojeRows[0].despesas) || 0);
+    const saldoMesRestante = (parseFloat(saldoMesRows[0].receitas) || 0) - (parseFloat(saldoMesRows[0].despesas) || 0);
+
+    const receitasPrevistas = recorrentesProximos
+      .filter((r) => r.tipo === 'receita')
+      .reduce((acc, r) => acc + r.valor, 0);
+    const despesasPrevistas = recorrentesProximos
+      .filter((r) => r.tipo === 'despesa')
+      .reduce((acc, r) => acc + r.valor, 0);
+
+    const saldoProjetado = saldoAteHoje + saldoMesRestante + receitasPrevistas - despesasPrevistas;
+    if (saldoProjetado < 0) {
+      alertas.push({
+        tipo: 'saldo_negativo',
+        nivel: 'danger',
+        titulo: 'Saldo projetado negativo',
+        mensagem: `O saldo projetado para os proximos 30 dias e ${saldoProjetado.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}.`
+      });
+    }
+
+    const proximos7dias = recorrentesProximos.filter((r) => {
+      const data = new Date(r.data);
+      const limite7 = new Date();
+      limite7.setDate(limite7.getDate() + 7);
+      return r.tipo === 'despesa' && data <= limite7;
+    });
+
+    if (proximos7dias.length > 0) {
+      const total7dias = proximos7dias.reduce((acc, r) => acc + r.valor, 0);
+      alertas.push({
+        tipo: 'despesas_proximas',
+        nivel: 'warning',
+        titulo: 'Contas recorrentes proximas do vencimento',
+        mensagem: `${proximos7dias.length} lancamento(s) recorrente(s) de despesa nos proximos 7 dias (${total7dias.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}).`
+      });
+    }
+
+    return alertas;
   }
 }
 

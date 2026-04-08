@@ -8,7 +8,7 @@
  */
 function validarTransacao(req, res, next) {
   const erros = [];
-  const { descricao, valor, tipo, data } = req.body;
+  const { descricao, valor, tipo, data, recorrente, frequencia } = req.body;
 
   if (!descricao || !descricao.trim()) {
     erros.push('A descrição é obrigatória.');
@@ -31,6 +31,10 @@ function validarTransacao(req, res, next) {
     erros.push('A data é obrigatória.');
   } else if (isNaN(Date.parse(data))) {
     erros.push('Data inválida.');
+  }
+
+  if (recorrente && !['semanal', 'mensal', 'anual'].includes(frequencia)) {
+    erros.push('Frequência inválida para transação recorrente.');
   }
 
   if (erros.length > 0) {
@@ -52,7 +56,7 @@ function validarTransacao(req, res, next) {
  */
 function validarTransacaoAPI(req, res, next) {
   const erros = [];
-  const { descricao, valor, tipo, data } = req.body;
+  const { descricao, valor, tipo, data, recorrente, frequencia } = req.body;
 
   if (!descricao || !descricao.trim()) {
     erros.push('A descrição é obrigatória.');
@@ -75,6 +79,10 @@ function validarTransacaoAPI(req, res, next) {
     erros.push('A data é obrigatória.');
   } else if (isNaN(Date.parse(data))) {
     erros.push('Data inválida.');
+  }
+
+  if (recorrente && !['semanal', 'mensal', 'anual'].includes(frequencia)) {
+    erros.push('Frequência inválida para transação recorrente.');
   }
 
   if (erros.length > 0) {

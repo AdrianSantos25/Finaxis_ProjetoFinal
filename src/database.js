@@ -255,6 +255,25 @@ async function setupDatabase() {
       )
     `);
 
+    // Criar tabela de metas financeiras (objetivos)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS metas_financeiras (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        utilizador_id INT NOT NULL,
+        conta_id INT NOT NULL,
+        titulo VARCHAR(255) NOT NULL,
+        tipo ENUM('poupanca', 'quitacao') NOT NULL DEFAULT 'poupanca',
+        valor_objetivo DECIMAL(12, 2) NOT NULL,
+        valor_atual DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        data_objetivo DATE DEFAULT NULL,
+        status ENUM('ativa', 'concluida', 'arquivada') NOT NULL DEFAULT 'ativa',
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE CASCADE,
+        FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE
+      )
+    `);
+
     if (!await columnExists(connection, 'orcamentos', 'conta_id')) {
       await connection.query(`
         ALTER TABLE orcamentos
@@ -302,6 +321,29 @@ async function setupDatabase() {
         FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE SET NULL
       )
     `);
+
+    // Tabela de eventos de analytics para funil SaaS
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        conta_id INT DEFAULT NULL,
+        utilizador_id INT DEFAULT NULL,
+        event_name VARCHAR(100) NOT NULL,
+        source VARCHAR(50) DEFAULT 'app',
+        event_data JSON DEFAULT NULL,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE SET NULL,
+        FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE SET NULL
+      )
+    `);
+
+    try {
+      await connection.query('CREATE INDEX idx_analytics_event_name_data ON analytics_events(event_name, criado_em)');
+    } catch (e) { /* Índice já existe */ }
+
+    try {
+      await connection.query('CREATE INDEX idx_analytics_conta_data ON analytics_events(conta_id, criado_em)');
+    } catch (e) { /* Índice já existe */ }
 
     // Adicionar colunas de recorrência às transações
     if (!await columnExists(connection, 'transacoes', 'recorrente')) {

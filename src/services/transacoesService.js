@@ -96,6 +96,67 @@ class TransacoesService {
     return resultado;
   }
 
+  async transacaoSemelhanteExiste(contaId, { descricao, valor, tipo, data }) {
+    const [rows] = await db.query(
+      `SELECT id
+       FROM transacoes
+       WHERE conta_id = ?
+         AND descricao = ?
+         AND valor = ?
+         AND tipo = ?
+         AND data = ?
+       LIMIT 1`,
+      [contaId, descricao.trim(), parseFloat(valor), tipo, data]
+    );
+    return rows.length > 0;
+  }
+
+  async sugerirCategoriaPorHistorico(contaId, tipo, descricao) {
+    const descricaoNormalizada = (descricao || '').trim().toLowerCase();
+    if (!descricaoNormalizada) return null;
+
+    // Primeiro tenta match por descricao exata no historico.
+    const [exatas] = await db.query(
+      `SELECT categoria_id
+       FROM transacoes
+       WHERE conta_id = ?
+         AND tipo = ?
+         AND categoria_id IS NOT NULL
+         AND LOWER(descricao) = ?
+       ORDER BY data DESC, id DESC
+       LIMIT 1`,
+      [contaId, tipo, descricaoNormalizada]
+    );
+
+    if (exatas.length > 0) return exatas[0].categoria_id;
+
+    const palavras = descricaoNormalizada
+      .split(/[^a-zA-Z0-9]+/)
+      .map((p) => p.trim())
+      .filter((p) => p.length >= 4)
+      .slice(0, 5);
+
+    if (!palavras.length) return null;
+
+    const condicoes = palavras.map(() => 'LOWER(descricao) LIKE ?').join(' OR ');
+    const params = palavras.map((p) => `%${p}%`);
+
+    const [rows] = await db.query(
+      `SELECT categoria_id, COUNT(*) as total
+       FROM transacoes
+       WHERE conta_id = ?
+         AND tipo = ?
+         AND categoria_id IS NOT NULL
+         AND (${condicoes})
+       GROUP BY categoria_id
+       ORDER BY total DESC
+       LIMIT 1`,
+      [contaId, tipo, ...params]
+    );
+
+    return rows.length > 0 ? rows[0].categoria_id : null;
+  }
+
   /**
    * Atualizar transação existente
    */
@@ -162,6 +223,40 @@ class TransacoesService {
         proximaData = this._calcularProximaData(ultimaGeracao, trans.frequencia);
       }
     }
+  }
+
+  async listarRecorrentesProximas(contaId, dias = 30) {
+    const [recorrentes] = await db.query(
+      'SELECT * FROM transacoes WHERE recorrente = 1 AND conta_id = ? AND ultima_geracao IS NOT NULL',
+      [contaId]
+    );
+
+    const hoje = new Date();
+    const limite = new Date();
+    limite.setDate(limite.getDate() + dias);
+    const previstas = [];
+
+    for (const trans of recorrentes) {
+      let cursor = new Date(trans.ultima_geracao);
+      let proximaData = this._calcularProximaData(cursor, trans.frequencia);
+
+      while (proximaData <= limite) {
+        if (proximaData >= hoje) {
+          previstas.push({
+            idModelo: trans.id,
+            descricao: trans.descricao,
+            tipo: trans.tipo,
+            valor: parseFloat(trans.valor),
+            data: proximaData.toISOString().split('T')[0],
+            frequencia: trans.frequencia
+          });
+        }
+        cursor = proximaData;
+        proximaData = this._calcularProximaData(cursor, trans.frequencia);
+      }
+    }
+
+    return previstas.sort((a, b) => new Date(a.data) - new Date(b.data));
   }
 
   /**

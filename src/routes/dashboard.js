@@ -14,14 +14,14 @@ router.get('/', async (req, res, next) => {
     const mes = parseInt(req.query.mes) || (hoje.getMonth() + 1);
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
     
+    // Processar transações recorrentes antes de calcular indicadores
+    await transacoesService.processarRecorrentes(contaId, utilizadorId);
+
     // Obter dados do dashboard e orçamentos em paralelo
     const [dados, orcamentosDados] = await Promise.all([
       dashboardService.obterDados(contaId, mes, ano),
       orcamentosService.obterResumoDashboard(contaId, mes, ano)
     ]);
-
-    // Processar transações recorrentes
-    await transacoesService.processarRecorrentes(contaId, utilizadorId);
     
     // Meses para navegação
     const meses = [

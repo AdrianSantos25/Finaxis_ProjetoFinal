@@ -3,10 +3,12 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const db = require('../database');
 const transacoesService = require('../services/transacoesService');
 const categoriasService = require('../services/categoriasService');
 const saasService = require('../services/saasService');
 const auditService = require('../services/auditService');
+const analyticsService = require('../services/analyticsService');
 const { validarTransacao, validarTransacaoAPI } = require('../middlewares/validacao');
 
 // Configurar pasta de uploads
@@ -55,6 +57,8 @@ router.get('/', async (req, res, next) => {
     const pagina = parseInt(req.query.pagina) || 1;
     const limite = 20;
 
+    await transacoesService.processarRecorrentes(contaId, utilizadorId);
+
     const { transacoes, paginacao } = await transacoesService.listar(contaId, {
       tipo,
       categoria,
@@ -82,6 +86,7 @@ router.get('/', async (req, res, next) => {
     next(err);
   }
 });
+
 
 // Formulário nova transação
 router.get('/nova', async (req, res, next) => {
@@ -115,6 +120,30 @@ router.post('/', upload.single('comprovativo'), validarTransacao, async (req, re
     }
     
     await transacoesService.criar(contaId, utilizadorId, dados);
+
+    const [countRows] = await db.query('SELECT COUNT(*) as total FROM transacoes WHERE conta_id = ?', [contaId]);
+    const totalTransacoes = countRows[0].total || 0;
+
+    if (totalTransacoes === 1) {
+      await analyticsService.registarEvento({
+        contaId,
+        utilizadorId,
+        eventName: 'onboarding_complete',
+        source: 'transacoes_manual',
+        eventData: { totalTransacoes }
+      });
+    }
+
+    if (totalTransacoes === 5) {
+      await analyticsService.registarEvento({
+        contaId,
+        utilizadorId,
+        eventName: 'first_5_transactions',
+        source: 'transacoes_manual',
+        eventData: { totalTransacoes }
+      });
+    }
+
     await auditService.registar({
       contaId,
       utilizadorId,
@@ -148,6 +177,30 @@ router.post('/api/criar', validarTransacaoAPI, async (req, res, next) => {
     const utilizadorId = req.session.utilizador.id;
     await saasService.verificarLimiteTransacoes(utilizadorId, req.body.data);
     await transacoesService.criar(contaId, utilizadorId, req.body);
+
+    const [countRows] = await db.query('SELECT COUNT(*) as total FROM transacoes WHERE conta_id = ?', [contaId]);
+    const totalTransacoes = countRows[0].total || 0;
+
+    if (totalTransacoes === 1) {
+      await analyticsService.registarEvento({
+        contaId,
+        utilizadorId,
+        eventName: 'onboarding_complete',
+        source: 'transacoes_api',
+        eventData: { totalTransacoes }
+      });
+    }
+
+    if (totalTransacoes === 5) {
+      await analyticsService.registarEvento({
+        contaId,
+        utilizadorId,
+        eventName: 'first_5_transactions',
+        source: 'transacoes_api',
+        eventData: { totalTransacoes }
+      });
+    }
+
     res.json({ success: true, message: 'Transação criada com sucesso!' });
   } catch (err) {
     if (err.statusCode === 403 || err.statusCode === 402) {

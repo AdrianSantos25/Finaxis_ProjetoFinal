@@ -1,6 +1,7 @@
 const Stripe = require('stripe');
 const db = require('../database');
 const { AppError } = require('../middlewares/errorHandler');
+const analyticsService = require('./analyticsService');
 
 class BillingService {
   constructor() {
@@ -185,6 +186,24 @@ class BillingService {
         fim
       ]
     );
+
+    if (['active', 'trialing'].includes(status) && ['pro', 'business'].includes(plano)) {
+      await analyticsService.registarEvento({
+        contaId,
+        eventName: 'subscribed',
+        source: 'stripe_webhook',
+        eventData: { plano, status, stripeSubscriptionId }
+      });
+    }
+
+    if (status === 'canceled') {
+      await analyticsService.registarEvento({
+        contaId,
+        eventName: 'canceled',
+        source: 'stripe_webhook',
+        eventData: { plano, stripeSubscriptionId }
+      });
+    }
 
     if (status === 'canceled') {
       await this.downgradeContaParaFree(contaId, false);

@@ -47,6 +47,15 @@ block content
 
   .row.g-4
     .col-lg-8
+      //- Alertas inteligentes
+      if alertasInteligentes && alertasInteligentes.length > 0
+        each alerta in alertasInteligentes
+          .alert(class=`alert-${alerta.nivel}`).d-flex.align-items-center.mb-3
+            i.bi.bi-bell-fill.me-2
+            div
+              strong #{alerta.titulo}
+              |  #{alerta.mensagem}
+
       //- Alertas de orçamento
       if alertasOrcamento && alertasOrcamento.length > 0
         each alerta in alertasOrcamento
@@ -136,6 +145,26 @@ block content
                 .progress(style="height: 8px;")
                   - const barClass = orc.estado === 'ultrapassado' ? 'bg-danger' : (orc.estado === 'alerta' ? 'bg-warning' : 'bg-success')
                   .progress-bar(class=barClass role="progressbar" style=`width: ${orc.percentagem}%`)
+
+      if metasResumo && metasResumo.metasAtivas && metasResumo.metasAtivas.length > 0
+        .card.mt-4
+          .card-header.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.bi.bi-flag.me-2
+              | Metas Ativas
+            a.btn.btn-sm.btn-outline-primary(href='/metas') Ver metas
+          .card-body
+            each meta in metasResumo.metasAtivas.slice(0, 4)
+              .mb-3
+                .d-flex.justify-content-between.align-items-center.mb-1
+                  strong #{meta.titulo}
+                  small.text-muted #{meta.progresso}%
+                .progress(style='height: 8px;')
+                  .progress-bar.bg-info(role='progressbar' style=`width: ${meta.progresso}%`)
+                .small.text-muted.mt-1
+                  | #{meta.valor_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / #{meta.valor_objetivo.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                  if meta.previsao_conclusao
+                    |  | Previsao: #{new Date(meta.previsao_conclusao).toLocaleDateString('pt-PT')}
 
   //- Modal para Nova Transação
   .modal.fade#modalTransacao(tabindex="-1" aria-labelledby="modalTransacaoLabel" aria-hidden="true")

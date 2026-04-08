@@ -1,0 +1,88 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3.mb-0
+      i.bi.bi-flag.me-2
+      | Metas Financeiras
+    button.btn.btn-primary(type='button' data-bs-toggle='collapse' data-bs-target='#formNovaMeta' aria-expanded='false')
+      i.bi.bi-plus.me-1
+      | Nova Meta
+
+  .collapse.mb-4#formNovaMeta
+    .card
+      .card-body
+        form.row.g-3(method='POST' action='/metas')
+          .col-md-4
+            label.form-label Titulo
+            input.form-control(type='text' name='titulo' maxlength='255' required placeholder='Ex: Fundo de emergencia')
+          .col-md-2
+            label.form-label Tipo
+            select.form-select(name='tipo')
+              option(value='poupanca') Poupanca
+              option(value='quitacao') Quitacao
+          .col-md-2
+            label.form-label Objetivo (EUR)
+            input.form-control(type='number' name='valor_objetivo' min='0.01' step='0.01' required)
+          .col-md-2
+            label.form-label Atual (EUR)
+            input.form-control(type='number' name='valor_atual' min='0' step='0.01' value='0')
+          .col-md-2
+            label.form-label Data objetivo
+            input.form-control(type='date' name='data_objetivo')
+          .col-12
+            button.btn.btn-success(type='submit')
+              i.bi.bi-check.me-1
+              | Criar meta
+
+  if !metas || metas.length === 0
+    .card
+      .card-body.text-center.text-muted.py-5
+        i.bi.bi-flag(style='font-size: 3rem;')
+        p.mt-3.mb-0 Ainda nao existem metas. Crie a primeira para acompanhar progresso.
+  else
+    .row.g-3
+      each meta in metas
+        .col-lg-6
+          .card.h-100
+            .card-body
+              .d-flex.justify-content-between.align-items-start.mb-2
+                div
+                  h5.mb-1 #{meta.titulo}
+                  small.text-muted
+                    | #{meta.tipo === 'quitacao' ? 'Quitacao' : 'Poupanca'}
+                    if meta.data_objetivo
+                      |  | Prazo: #{new Date(meta.data_objetivo).toLocaleDateString('pt-PT')}
+                span.badge(class=meta.status === 'concluida' ? 'bg-success' : (meta.status === 'arquivada' ? 'bg-secondary' : 'bg-primary'))
+                  | #{meta.status}
+
+              .d-flex.justify-content-between.small.mb-1
+                span #{meta.valor_atual.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                span #{meta.valor_objetivo.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+              .progress(style='height: 10px;')
+                .progress-bar(class=meta.progresso >= 100 ? 'bg-success' : 'bg-info' role='progressbar' style=`width: ${meta.progresso}%`)
+              .small.text-muted.mt-2
+                | Progresso: #{meta.progresso}% | Falta: #{meta.falta.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                if meta.previsao_conclusao
+                  br
+                  | Previsao de conclusao: #{new Date(meta.previsao_conclusao).toLocaleDateString('pt-PT')}
+
+              .row.g-2.mt-3
+                .col-md-6
+                  form(method='POST' action=`/metas/${meta.id}/progresso`)
+                    .input-group
+                      input.form-control.form-control-sm(type='number' name='valor_atual' min='0' step='0.01' value=meta.valor_atual required)
+                      button.btn.btn-sm.btn-outline-primary(type='submit') Atualizar
+                .col-md-6
+                  form(method='POST' action=`/metas/${meta.id}/estado`)
+                    .input-group
+                      select.form-select.form-select-sm(name='status')
+                        option(value='ativa' selected=meta.status === 'ativa') ativa
+                        option(value='concluida' selected=meta.status === 'concluida') concluida
+                        option(value='arquivada' selected=meta.status === 'arquivada') arquivada
+                      button.btn.btn-sm.btn-outline-secondary(type='submit') Estado
+
+              form.mt-2(method='POST' action=`/metas/${meta.id}/eliminar` onsubmit='return confirm("Eliminar esta meta?")')
+                button.btn.btn-sm.btn-outline-danger(type='submit')
+                  i.bi.bi-trash.me-1
+                  | Eliminar

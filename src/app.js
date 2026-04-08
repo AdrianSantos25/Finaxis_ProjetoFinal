@@ -99,6 +99,7 @@ const transacoesRoutes = require('./routes/transacoes');
 const categoriasRoutes = require('./routes/categorias');
 const relatoriosRoutes = require('./routes/relatorios');
 const orcamentosRoutes = require('./routes/orcamentos');
+const metasRoutes = require('./routes/metas');
 const billingRoutes = require('./routes/billing');
 const contaRoutes = require('./routes/conta');
 
@@ -107,6 +108,7 @@ app.use('/transacoes', verificarAutenticacao, transacoesRoutes);
 app.use('/categorias', verificarAutenticacao, categoriasRoutes);
 app.use('/relatorios', verificarAutenticacao, relatoriosRoutes);
 app.use('/orcamentos', verificarAutenticacao, orcamentosRoutes);
+app.use('/metas', verificarAutenticacao, metasRoutes);
 app.use('/billing', verificarAutenticacao, billingRoutes);
 app.use('/conta', verificarAutenticacao, contaRoutes);
 

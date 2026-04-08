@@ -1,6 +1,18 @@
 extends ../layout
 
 block content
+  if erro
+    .alert.alert-danger.alert-dismissible.fade.show(role='alert')
+      i.bi.bi-exclamation-triangle.me-2
+      | #{erro}
+      button.btn-close(type='button' data-bs-dismiss='alert' aria-label='Close')
+
+  if sucesso
+    .alert.alert-success.alert-dismissible.fade.show(role='alert')
+      i.bi.bi-check-circle.me-2
+      | #{sucesso}
+      button.btn-close(type='button' data-bs-dismiss='alert' aria-label='Close')
+
   .d-flex.justify-content-between.align-items-center.mb-4
     h1.h3.mb-0
       i.bi.bi-list-ul.me-2
@@ -256,4 +268,5 @@ block scripts
           if (!confirm(msg)) e.preventDefault();
         });
       });
+
     });

@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const saasService = require('../services/saasService');
 const billingService = require('../services/billingService');
+const analyticsService = require('../services/analyticsService');
 
 const billingWriteLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -35,6 +36,14 @@ router.post('/checkout', billingWriteLimiter, async (req, res, next) => {
     const utilizador = req.session.utilizador;
     const { plano } = req.body;
 
+    await analyticsService.registarEvento({
+      contaId: utilizador.conta_id,
+      utilizadorId: utilizador.id,
+      eventName: 'trial_started',
+      source: 'billing_checkout',
+      eventData: { plano }
+    });
+
     const session = await billingService.criarCheckoutSessao({
       contaId: utilizador.conta_id,
       nome: utilizador.nome,
@@ -52,7 +61,17 @@ router.post('/checkout', billingWriteLimiter, async (req, res, next) => {
 router.post('/downgrade', billingWriteLimiter, async (req, res, next) => {
   try {
     const contaId = req.session.utilizador.conta_id;
+    const utilizadorId = req.session.utilizador.id;
     await billingService.downgradeContaParaFree(contaId, true);
+
+    await analyticsService.registarEvento({
+      contaId,
+      utilizadorId,
+      eventName: 'canceled',
+      source: 'billing_downgrade',
+      eventData: { motivo: 'manual_downgrade' }
+    });
+
     req.session.sucesso = 'Plano alterado para Free com sucesso.';
     res.redirect('/billing');
   } catch (err) {

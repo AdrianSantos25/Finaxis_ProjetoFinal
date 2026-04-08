@@ -35,6 +35,9 @@ Sistema de gestão financeira pessoal desenvolvido com Node.js, Express, Pug e M
 ├── public/                 # Arquivos estáticos
 │   ├── css/style.css       # Estilos personalizados
 │   └── images/             # Logotipo e imagens
+├── docs/
+│   ├── SPRINTS_90_DIAS.md          # Plano operacional semana a semana
+│   └── BACKLOG_TECNICO_90_DIAS.md  # Backlog técnico para execução
 ├── package.json
 └── README.md
 ```
@@ -173,6 +176,12 @@ Os relatórios permitem analisar as suas finanças ao longo do tempo.
 - Trial de 14 dias (uma vez por conta)
 - Webhook Stripe para sincronizar plano/status automaticamente
 - Downgrade automático para Free no fim do trial
+
+### KPI e Conversão
+- Instrumentação de eventos do funil (`signup`, `onboarding_complete`, `first_5_transactions`, `trial_started`, `subscribed`, `canceled`)
+- Painel de KPIs em `/conta/configuracoes` (apenas admin) com janela móvel de 7 e 30 dias
+- Endpoint interno para relatórios semanais/mensais: `/conta/kpis/funil?periodo=7|30`
+- Taxas de conversão automáticas entre etapas do funil
 
 ### Equipas e Governança
 - Multi-utilizador por conta com perfis `admin` e `membro`

@@ -8,6 +8,7 @@ const { enviarEmailRecuperacao } = require('../email');
 const saasService = require('../services/saasService');
 const contaService = require('../services/contaService');
 const auditService = require('../services/auditService');
+const analyticsService = require('../services/analyticsService');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -219,6 +220,14 @@ router.post('/registar', registoLimiter, async (req, res) => {
       detalhes: { email, papel },
       ip: req.ip,
       userAgent: req.get('user-agent')
+    });
+
+    await analyticsService.registarEvento({
+      contaId,
+      utilizadorId: resultado.insertId,
+      eventName: 'signup',
+      source: 'auth_registo',
+      eventData: { viaConvite: Boolean(conviteToken) }
     });
 
     res.redirect('/dashboard');
