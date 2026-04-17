@@ -28,9 +28,9 @@ async function enviarEmailRecuperacao(email, nome, token, host) {
   const linkRecuperacao = `${host}/auth/redefinir-senha/${token}`;
   
   const mailOptions = {
-    from: `"FINAXIS" <${process.env.SMTP_USER || 'noreply@finaxis.com'}>`,
+    from: `"FINANXIS" <${process.env.SMTP_USER || 'noreply@finanxis.com'}>`,
     to: email,
-    subject: 'Recuperação de Palavra-passe - FINAXIS',
+    subject: 'Recuperação de Palavra-passe - FINANXIS',
     html: `
       <!DOCTYPE html>
       <html>
@@ -73,13 +73,13 @@ async function enviarEmailRecuperacao(email, nome, token, host) {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">FINAXIS</div>
+            <div class="logo">FINANXIS</div>
             <p style="color: #6b7280; margin: 5px 0 0 0;">Gestor Financeiro</p>
           </div>
           
           <div class="content">
             <h2 style="color: #1f2937;">Olá, ${nome}!</h2>
-            <p>Recebemos um pedido para redefinir a palavra-passe da sua conta FINAXIS.</p>
+            <p>Recebemos um pedido para redefinir a palavra-passe da sua conta FINANXIS.</p>
             <p>Clique no botão abaixo para criar uma nova palavra-passe:</p>
             
             <div style="text-align: center;">
@@ -99,8 +99,8 @@ async function enviarEmailRecuperacao(email, nome, token, host) {
           </div>
           
           <div class="footer">
-            <p>Este email foi enviado automaticamente pelo sistema FINAXIS.</p>
-            <p>© ${new Date().getFullYear()} FINAXIS - Todos os direitos reservados</p>
+            <p>Este email foi enviado automaticamente pelo sistema FINANXIS.</p>
+            <p>© ${new Date().getFullYear()} FINANXIS - Todos os direitos reservados</p>
           </div>
         </div>
       </body>
@@ -138,12 +138,12 @@ async function enviarEmailConvite(email, token, host) {
   const link = `${host}/conta/convites/aceitar/${token}`;
 
   return transporter.sendMail({
-    from: `"FINAXIS" <${process.env.SMTP_USER || 'noreply@finaxis.com'}>`,
+    from: `"FINANXIS" <${process.env.SMTP_USER || 'noreply@finanxis.com'}>`,
     to: email,
-    subject: 'Convite para equipa - FINAXIS',
+    subject: 'Convite para equipa - FINANXIS',
     html: `
       <div style="font-family:Segoe UI,Arial,sans-serif;max-width:620px;margin:0 auto;padding:20px;line-height:1.6;color:#1f2937">
-        <h2>Foi convidado para uma equipa no FINAXIS</h2>
+        <h2>Foi convidado para uma equipa no FINANXIS</h2>
         <p>Recebeu um convite para colaborar numa conta partilhada.</p>
         <p>
           <a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">

@@ -1,7 +1,7 @@
 # Sprints Operacionais (90 dias)
 
 ## Objetivo
-Levar o FINAXIS de MVP funcional para 50 pagantes em 90 dias com execução semanal previsivel.
+Levar o FINANXIS de MVP funcional para 50 pagantes em 90 dias com execução semanal previsivel.
 
 ## S1-S4 (Dias 1-30): Fundacao Comercial
 Meta: 300 registados, 10 pagantes, ativacao >= 25%

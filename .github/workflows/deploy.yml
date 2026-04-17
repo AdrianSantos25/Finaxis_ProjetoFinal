@@ -43,7 +43,7 @@ jobs:
             git reset --hard origin/main
             npm ci --omit=dev
             npm run check
-            pm2 restart finaxis || pm2 start src/app.js --name finaxis
+            pm2 restart finanxis || pm2 start src/app.js --name finanxis
 
       - name: Skip deploy when secrets are missing
         if: steps.deploy_config.outputs.enabled != 'true'

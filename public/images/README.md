@@ -1,7 +1,7 @@
-# Imagens do Projeto FINAXIS
+# Imagens do Projeto FINANXIS
 
 ## Logotipo
-Guarde o logotipo FINAXIS nesta pasta com o nome `logo.png`.
+Guarde o logotipo FINANXIS nesta pasta com o nome `logo.png`.
 
 O logotipo é utilizado em:
 - **Navbar** - Cabeçalho de todas as páginas

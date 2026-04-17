@@ -1,4 +1,4 @@
-# FINAXIS - Gestor Financeiro
+# FINANXIS - Gestor Financeiro
 
 Sistema de gestão financeira pessoal desenvolvido com Node.js, Express, Pug e MySQL.
 

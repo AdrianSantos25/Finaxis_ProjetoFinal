@@ -1,7 +1,7 @@
 /* Estilos personalizados do Gestor Financeiro */
 
 /* ============================================
-   PALETA DE CORES FINAXIS - CLEAN & PROFISSIONAL
+    PALETA DE CORES FINANXIS - CLEAN & PROFISSIONAL
    ============================================
    Design moderno, elegante e sofisticado
    Sem cores escuras/pretas - tons azuis e neutros
@@ -810,7 +810,7 @@ footer .text-muted {
    LOGOTIPOS COM ANIMAÇÃO
    ============================================ */
 .navbar-logo {
-  height: 40px;
+  height: 34px;
   width: auto;
   filter: brightness(0) invert(1);
   transition: transform var(--transition-fast);
@@ -821,21 +821,21 @@ footer .text-muted {
 }
 
 .home-logo {
-  max-width: 280px;
+  max-width: 170px;
   height: auto;
   animation: fadeIn 0.6s ease-out;
 }
 
 .auth-logo {
-  max-width: 180px;
+  max-width: 190px;
   height: auto;
   animation: scaleIn 0.5s ease-out;
 }
 
 .footer-logo {
-  height: 30px;
+  height: 36px;
   width: auto;
-  opacity: 0.5;
+  opacity: 0.9;
   transition: opacity var(--transition-fast);
 }
 
@@ -1059,15 +1059,28 @@ footer .text-muted {
   }
   
   .navbar-logo {
-    height: 32px;
+    height: 30px;
   }
   
   .home-logo {
-    max-width: 200px;
+    max-width: 140px;
   }
   
   .auth-logo {
-    max-width: 140px;
+    max-width: 170px;
+  }
+
+  .cookie-banner__content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cookie-banner__actions {
+    justify-content: stretch;
+  }
+
+  .cookie-banner__actions .btn {
+    flex: 1 1 auto;
   }
 }
 
@@ -1108,6 +1121,80 @@ footer .text-muted {
 
 .shadow-none {
   box-shadow: none !important;
+}
+
+/* ============================================
+   PÁGINAS LEGAIS
+   ============================================ */
+.legal-page {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.legal-header h1 {
+  letter-spacing: -0.02em;
+}
+
+.legal-page .card-body h2 {
+  color: var(--color-gray-800);
+}
+
+/* ============================================
+   CONSENTIMENTO DE COOKIES
+   ============================================ */
+.cookie-banner {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1100;
+}
+
+.cookie-banner__content {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(135deg, #1f3654 0%, #2d4a6f 100%);
+  color: var(--color-white);
+  box-shadow: var(--shadow-xl);
+}
+
+.cookie-banner__text {
+  max-width: 760px;
+}
+
+.cookie-banner__text p {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cookie-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1110;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.cookie-panel__card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-gray-200);
+  padding: 1rem;
 }
 
 /* Hover suave para cards sem transformação */

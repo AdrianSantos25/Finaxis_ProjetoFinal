@@ -74,7 +74,7 @@ app.use((req, res, next) => {
 
 // Configurar sessões
 app.use(session({
-  name: 'finaxis.sid',
+  name: 'finanxis.sid',
   secret: process.env.SESSION_SECRET || 'gestor-financeiro-secret-key-2025',
   resave: false,
   saveUninitialized: false,

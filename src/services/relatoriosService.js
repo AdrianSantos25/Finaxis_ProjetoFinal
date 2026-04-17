@@ -297,7 +297,7 @@ class RelatoriosService {
       doc.on('error', reject);
 
       // Título
-      doc.fontSize(20).font('Helvetica-Bold').text(`FINAXIS - Relatório ${ano}`, { align: 'center' });
+      doc.fontSize(20).font('Helvetica-Bold').text(`FINANXIS - Relatório ${ano}`, { align: 'center' });
       doc.moveDown();
 
       // Resumo
@@ -349,7 +349,7 @@ class RelatoriosService {
       // Rodapé
       doc.moveDown(2);
       doc.fontSize(8).font('Helvetica').fillColor('#999');
-      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-PT')} - FINAXIS`, { align: 'center' });
+      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-PT')} - FINANXIS`, { align: 'center' });
 
       doc.end();
     });
